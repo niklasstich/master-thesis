@@ -1,5 +1,5 @@
-#import "config.typ": conf
-#show: doc => conf(
+#import "config.typ": head
+#show: doc => head(
   title: [A Source Code Generator Package for Common Design and Programming Patterns],
   authors: (
     (
@@ -12,8 +12,15 @@
   doc,
 )
 
+#outline(title: "Table of contents")
 
-= Introduction
-#lorem(90)
-== Motvation 
-#lorem(300)
+#include "chapters/introduction.typ"
+#include "chapters/approach.typ"
+#include "chapters/metalama.typ"
+#include "chapters/patterns.typ"
+
+TODO: APPENDIX, GLOSSAR (mit Abkürzungen), 
+
+#bibliography("sources.bib", style: "ieee")
+#outline(title: "Table of figures", target: figure)
+//#outline(title: "Table of tables", target: table)

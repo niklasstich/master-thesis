@@ -1,4 +1,4 @@
-#let conf(
+#let head(
   title: none,
   authors: (),
   abstract: [],
@@ -49,5 +49,6 @@
   ]
 
   set align(left)
+  set raw(lang: "cs")
   doc
 }
