@@ -2,6 +2,8 @@
 Wir schreiben C\#, kurz erklären warum
 
 == Possible software frameworks
+
+TODO: NUTZWERTANALYSE => Siehe dazu Projektmanagement Burghardt ISBN 978-3-89578-472-9
 === Source Generator
 Erwähnen, dass vor Beginn der Arbeit noch keine Änderungen an Code möglich waren (siehe Interceptor)
 

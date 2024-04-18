@@ -14,12 +14,17 @@
 
 #outline(title: "Table of contents")
 
+$a^(alpha_5^7)$
+$Alpha$
+
+
 #include "chapters/introduction.typ"
 #include "chapters/approach.typ"
 #include "chapters/metalama.typ"
 #include "chapters/patterns.typ"
+#include "chapters/conclusion.typ"
 
-TODO: APPENDIX, GLOSSAR (mit Abkürzungen), 
+TODO: APPENDIX (kein Appendix, stattdessen z.B. ausführliches Beispiel auf Datenträger)
 
 #bibliography("sources.bib", style: "ieee")
 #outline(title: "Table of figures", target: figure)

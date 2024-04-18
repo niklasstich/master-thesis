@@ -5,7 +5,3 @@ Hier alle Patterns, die ich auch wirklich geschafft habe zu implementieren. Deta
 == ???
 == ???
 == ???
-
-
-= Other possible patterns
-Hier ist quasi "Brainstorming" für Patterns, die man noch automatisieren könnte, die ich aber nicht geschafft habe
