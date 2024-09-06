@@ -12,7 +12,7 @@ Roslyn Fork
 Pro: Kann schon viel, bereits "battle tested", aktive Weiterentwicklung, garantierter Support weil kommerzielles Produkt
 
 Contra: Kommerzielles Produkt, kann noch nicht alles (z.B. nested types generieren)
-=== Custom code generation framework
-Viel zu viel Arbeit für den Rahmen einer Masterarbeit
 == Similar solutions in other languages (?)
 Java? Google Auto? Telosys? jOOQ? hygen?
+== Custom code generation framework
+Viel zu viel Arbeit für den Rahmen einer Masterarbeit

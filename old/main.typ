@@ -14,10 +14,6 @@
 
 #outline(title: "Table of contents")
 
-$a^(alpha_5^7)$
-$Alpha$
-
-
 #include "chapters/introduction.typ"
 #include "chapters/approach.typ"
 #include "chapters/metalama.typ"

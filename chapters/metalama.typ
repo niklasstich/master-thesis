@@ -4,3 +4,6 @@
 == Verification
 == Expandability
 == Divorcing
+== Technical details
+=== Compilation process
+=== Limitations
