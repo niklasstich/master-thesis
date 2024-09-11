@@ -1,4 +1,4 @@
-= Approaching the problem
+= Metaprogramming frameworks
 Wir schreiben C\#, kurz erklären warum
 
 == Possible software frameworks

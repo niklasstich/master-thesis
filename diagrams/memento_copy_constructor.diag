@@ -1,0 +1,39 @@
+@startuml memento_copy_constructor
+top to bottom direction
+interface IOriginator {
+    +IMemento GetMemento()
+    +void RestoreMemento(IMemento memento)
+}
+interface IMemento
+
+
+class Originator implements IOriginator {
+    +IMemento GetMemento()
+    +void RestoreMemento(IMemento memento)
+}
+
+note right of Originator::"GetMemento()"
+return new ConcreteMemento(this)
+end note
+
+note right of Originator::"RestoreMemento(IMemento memento)"
+if(memento is not ConcreteMemento) throw Exception
+foreach field or property
+    this.field = memento.field
+end note
+
+
+class ConcreteMemento implements IMemento {
+    +ConcreteMemento(Originator state)
+}
+
+class Caretaker
+
+note left of ConcreteMemento::"ConcreteMemento(Originator state)"
+foreach field or property 
+    this.field = state.field
+end note
+
+Originator +-- "private" ConcreteMemento
+Originator <--o Caretaker
+@enduml

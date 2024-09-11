@@ -7,7 +7,6 @@
 
   //Einstellungen für Text
   #set text(size: 12pt, font: "New Computer Modern")
-  #show raw: set text(font: "New Computer Modern Mono")
   #set par(leading: 0.55em, justify: true, linebreaks: "optimized")
   #show par: set block(spacing: 0.55em)
 
@@ -18,8 +17,8 @@
   #show heading.where(level: 2): set text(size: 14.4pt)
 
   //Einstellungen für Zitate
-  #show figure.where(kind: image): set figure(supplement: "Abbildung")
-  #show figure.where(kind: table): set figure(supplement: "Tabelle")
+  // #show figure.where(kind: image): set figure(supplement: "Abbildung")
+  // #show figure.where(kind: table): set figure(supplement: "Tabelle")
   #set figure(numbering: "1.1")
   //Per-section-numbering ist in typst aktuell (04/24) noch nicht supported und ist auf der roadmap. D.h. die nummerierung ist 1, 2, 3 statt 1.1, 1.2, 2.1
   //Man kann das mit dem numbering-parameter manuell überschreiben, ist aber nicht ganz sinn der sache
@@ -27,6 +26,11 @@
   //Ich habe leider keinen exakten match für den "alphadin"-style gefunden, der in der LaTeX Vorlage verwendet wird. DIN-1505 kommt dem am nähesten
   //Den Zitierstil muss man aber sowieso mit dem jeweiligen Betreuer absprechen!
   //Quelle für die csl-Datei: https://www.zotero.org/styles?format=label (Stand 4.4.24)
+
+  #import "@preview/pintorita:0.1.1"
+
+  #show raw: set text(font: "Fira Code", ligatures: true)
+  #show raw.where(lang: "pintora"): it => pintorita.render(it.text)
 
   #doc
 ]

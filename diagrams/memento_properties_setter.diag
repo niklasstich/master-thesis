@@ -1,0 +1,37 @@
+@startuml memento_properties_setter
+top to bottom direction
+interface IOriginator {
+    +IMemento GetMemento()
+    +void RestoreMemento(IMemento memento)
+}
+interface IMemento
+
+
+class Originator implements IOriginator {
+    +IMemento GetMemento()
+    +void RestoreMemento(IMemento memento)
+}
+
+note right of Originator::"GetMemento()"
+var memento = new ConcreteMemento
+foreach field or property
+    memento.field = this.field
+return memento
+end note
+
+note right of Originator::"RestoreMemento(IMemento memento)"
+if(memento is not ConcreteMemento) throw Exception
+foreach field or property
+    this.field = memento.field
+end note
+
+
+class ConcreteMemento implements IMemento {
+    +ConcreteMemento()
+}
+
+class Caretaker
+
+Originator +-- "private" ConcreteMemento
+Originator <--o Caretaker
+@enduml

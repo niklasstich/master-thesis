@@ -4,3 +4,6 @@ Hier alle Patterns, die ich auch wirklich geschafft habe zu implementieren. Deta
 #include "patterns/singleton.typ"
 #include "patterns/unsavedchanges.typ"
 #include "patterns/factory.typ"
+
+= Analysis of other patterns
+Warum ist z.B. Command blöd?
