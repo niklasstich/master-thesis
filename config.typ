@@ -27,10 +27,19 @@
   //Den Zitierstil muss man aber sowieso mit dem jeweiligen Betreuer absprechen!
   //Quelle für die csl-Datei: https://www.zotero.org/styles?format=label (Stand 4.4.24)
 
-  #import "@preview/pintorita:0.1.1"
-
+  #import "@preview/codly:1.0.0": *
+  #show: codly-init.with()
   #show raw: set text(font: "Fira Code", ligatures: true)
-  #show raw.where(lang: "pintora"): it => pintorita.render(it.text)
+  #codly(
+    languages: (
+      csharp: (
+        name: "C#",
+        color: rgb(76, 156,	58) 
+      )
+    )
+  )
+  //#set raw(syntaxes:"code-syntax-highlighting/csharp-syntax.sublime-syntax", theme: "code-syntax-highlighting/kanagawa.tmTheme")
+  //#set raw(syntaxes:"code-syntax-highlighting/csharp-syntax.sublime-syntax", theme: "code-syntax-highlighting/kanagawa.tmTheme")
 
   #doc
 ]

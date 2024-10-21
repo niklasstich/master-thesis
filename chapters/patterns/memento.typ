@@ -34,7 +34,7 @@ When using a language that does not support nested (private) classes, such as C+
 
 In some literature @Gamma1994[p.285]TODO: where else?, the classes that retrieve and hold the memento from the originator and controls when to restore them is called the caretaker. For example, when using the Command pattern to encapsulate changes to the originator as objects @Gamma1994[p.233], we would designate the command itself as the caretaker of the originator, requesting a memento object before making any changes and reapplying it onto the originator when the Undo method is called @Gamma1994[p. 238]. As outlined before, ideally the caretaker should not have any access to the data stored inside of the memento and should merely hold the memento until it is used to reapply a past state on the originator.
 
-We must also take care to consider whether to shallow or deep copy our originator objects. When creating a shallow copy, we may simply copy all value type values and copy references to child objects into our memento type. When creating a deep copy on the other hand, we must clone all the child objects we hold a reference to (and in turn, copy all the objects that these objects hold references to, and so on). Both approaches have advantages and drawbacks:
+We must also take care to consider whether to shallow or deep copy our originator objects. When creating a shallow copy, we may simply copy all value type values and copy references to child objects into our memento type. For a deep copy on the other hand, we must clone all the child objects we hold a reference to (and in turn, copy all the objects that these objects hold references to, and so on). Both approaches have advantages and drawbacks:
 
 - Creating shallow copies of objects is much faster, simpler and cheaper in terms of memory cost than creating deep copies @Gamma1994[p.286].
 - When deep copying our originator to create mementos, restoring to a given state is much simpler, as we can simple restore any memento to restore the originator to its state when we created the memento.
@@ -73,27 +73,94 @@ For memento we must specify the order explicitly, because the `MementoRestoreHoo
   
 
 === MementoAttribute <mementoattributeimpl>
-As explained in TODO-REFERENCE-CHAPTER, before we begin execution of the `BuildAspect` logic, we first check the eligibility of the target declaration for this aspect. In the case of memento, this is defined as the target type being neither abstract nor an interface: 
-```
-public override void BuildEligibility(IEligibilityBuilder<INamedType> builder)
+As explained in TODO-REFERENCE-CHAPTER, before we begin execution of the `BuildAspect` logic, we first check the eligibility of the target declaration for this aspect. In the case of memento, this is defined as the target type being neither abstract nor an interface, as can be seen in @memento_eligibility:
+#figure(
+```csharp
+public class MementoAttribute : TypeAspect 
 {
-    base.BuildEligibility(builder);
-    builder.MustNotBeAbstract();
-    builder.MustNotBeInterface();
+  public override void BuildEligibility(IEligibilityBuilder<INamedType> builder)
+  {
+      base.BuildEligibility(builder);
+      builder.MustNotBeAbstract();
+      builder.MustNotBeInterface();
+  }
 }
-```
+```, caption: [BuildEligibility method of `MementoAttribute`]
+)<memento_eligibility>
 
-If this check succeeds, `BuildAspect` is called and the aspect executes the following tasks:
-==== Find relevant members 
-Depending on the setting of `MemberMode`, we either gather only fields, only properties, or all fields and properties of the target type and filter them by by writeability, retaining only members that can be written to at all times (i.e. a property with a `set` method or simply a field), as constructor-only or init-only members cannot be restored later on. We also filter out all members that are marked with the `[MementoIgnore]` attribute and so-called anonymous backing fields: "When you declare a property as shown in the following example, the compiler creates a private, anonymous backing field that can only be accessed through the property's get and set accessors." @dotnetdocs[Auto-Implemented Properties]. Unfortunately, Metalama does not directly offer us a way to recognize a field as a backing field for an auto property, but it's still possible to recognize them via simple string comparison of the field's name, as they always end with a specific string and also contain characters (such as `<` and `>`) that would be illegal in user-provided code, e.g. `<A>k__BackingField`.
+If this check succeeds, `BuildAspect` is called and the aspect executes the following tasks.
+==== Find relevant members<memento_find_members>
+Depending on the setting of `MemberMode`, we either gather only fields, only properties, or all fields and properties of the target type and filter them by by writeability, retaining only members that can be written to at all times (i.e. a property with a `set` method or simply a non-readonly field), as constructor-only or init-only members cannot be restored later on. We also filter out all members that are marked with the `[MementoIgnore]` attribute and so-called anonymous backing fields of auto-implemented properties: "When you declare a property as shown in the following example [@autoprop_example], the compiler creates a private, anonymous backing field that can only be accessed through the property's get and set accessors." @dotnetdocs["Auto-Implemented Properties (C\# Programming Guide)"].
+#figure(
+```csharp
+public class Customer
+{
+    // Auto-implemented properties for trivial get and set
+    public double TotalPurchases { get; set; }
+    public string Name { get; set; }
+    public int CustomerId { get; set; }
+
+    [...]
+}
+```,
+caption: [Example of C\# auto-implemented properties #cite(<dotnetdocs>, supplement: [shortened from "Auto-Implemented Properties (C\# Programming Guide)"])]
+)
+<autoprop_example>
+
+These fields are usually intentionally invisible to the user in normal code, but because Metalama accesses compiler information, we get to access these fields. We do want to filter them out though, because in `MemberMode.PropertiesOnly` or `MemberMode.All`, to restore the state of our originator later, it is sufficient to simply reset the property a backing field belongs to to it's previous state. We also do not want to set these fields when in `MemberMode.FieldsOnly`, because doing so would change the state of the property using that backing field. 
+
+Unfortunately, Metalama does not directly offer us a way to recognize a field as a backing field for an auto property, but it's still possible to recognize them via simple string comparison of the field's name, as they always end with a specific string and also contain characters (such as `<` and `>`) that would be illegal in user-provided code, e.g. `<A>k__BackingField`.
 
 ==== StrictnessMode diagnostics
 If the `StrictnessMode` is set to strict, we now report all members for which we do not have a value retaining copy heuristic in @memento_method_impl as a warning. This means that the reference to the value of the member will be simply copied, which as discussed in @memento_analysis might not always be the intended behaviour. This is also the reason why `StrictnessMode` is set to strict by default, as to force the user to acknowledge that this is how their memento implementation will behave. In order to get rid of the warning, the user then has the choice to either implement `ICloneable` on the object, essentially turning the shallow copy into a deep copy, or simply set the `StrictnessMode` to loose.
 
 ==== Configure memento class
+Before adding all necessary fields to the memento child type of the originator, we must first check that it is actually present on the target type. In case it is not present, we introduce a new empty class named `Memento` inside the originator. We must then also acquire a reference to our memento type so we can configure it afterwards. All of this can be done quite elegantly via the Metalama `builder.Advice` class:
+#figure(
+```csharp
+var res = builder.Advice.IntroduceClass(builder.Target, "Memento", OverrideStrategy.Ignore);
+if (res.Outcome == AdviceOutcome.Default)
+{
+  builder.Diagnostics.Report(
+    WarningNoMementoNestedClass.WithArguments(builder.Target),
+    builder.Target
+  );
+}
+var nestedMementoType = res.Outcome == AdviceOutcome.Default
+    ? res.Declaration
+    : builder.Target.NestedTypes.First(NestedTypeIsEligible);
+```, caption: [Introducing "Memento" child class code snippet]
+)<memento_introduce_child>
+As we can see in @memento_introduce_child, we can call the `builder.Advice.IntroduceClass` method with our originator class (`builder.Target`) as the declaration target, the string "Memento" as a name and the `OverrideStrategy.None` value to create a nested class with said name inside of our target type. In case the class does not yet exist, the given `res.Outcome` will be equal to `AdviceOutcome.Default`, and we know that we must take our newly created declaration out of the advice result via `res.Declaration`. If it already exists however, `OverrideStrategy.None` tells Metalama to simply do nothing with our given advice, and `res.Outcome` will be equal to `AdviceOutcome.Ignore` instead, in which case we take the first nested type of our target type which matches the criteria for the memento type.
 
+We can then add the required fields to this nested type via `builder.Advice.IntroduceField` as seen in @memento_add_fields_to_memento by simply iterating over the list of relevant members we've found earlier in @memento_find_members, creating a piece of advice for each member with the reference to the nested type, the name and type of the member, specifying to make this field an instance field (rather than a static one) and public accessibility. This list of advice results is then mapped into a list of the declarations they created so we can reference them in @memento_method_impl.
+
+#figure(
+```csharp
+var introducedFieldsOnMemento = IntroduceMementoTypeFields();
+
+IEnumerable<IField> IntroduceMementoTypeFields() => relevantMembers
+  .Select(fieldOrProperty => 
+      builder.Advice.IntroduceField(nestedMementoType,
+        fieldOrProperty.Name, fieldOrProperty.Type,
+        IntroductionScope.Instance, buildField: fBuilder =>
+          fBuilder.Accessibility = Accessibility.Public
+      )
+  )
+  .Select(r => r.Declaration);
+```, caption: [Introducing fields to memento type code snippet]
+)<memento_add_fields_to_memento>
 
 ==== Implement interfaces
+In order to keep the concrete memento type hidden from caretakers, we must implement the `IMemento` interface on our new `Memento` type as previously explained in @memento_analysis. We also implement `IOriginator` on the target type in @memento_impl_interfaces.
+#figure(
+```csharp
+builder.Advice.ImplementInterface(nestedMementoType, typeof(IMemento),
+  OverrideStrategy.Ignore);
+builder.Advice.ImplementInterface(builder.Target, typeof(IOriginator), 
+  OverrideStrategy.Override);
+```, caption: [Implementing interfaces code snippet]
+)<memento_impl_interfaces>
 
 
 ==== Method implementation <memento_method_impl> 
