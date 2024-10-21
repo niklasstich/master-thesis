@@ -1,18 +1,18 @@
 @startuml memento_properties_setter
 top to bottom direction
 interface IOriginator {
-    +IMemento GetMemento()
+    +IMemento CreateMemento()
     +void RestoreMemento(IMemento memento)
 }
 interface IMemento
 
 
 class Originator implements IOriginator {
-    +IMemento GetMemento()
+    +IMemento CreateMemento()
     +void RestoreMemento(IMemento memento)
 }
 
-note right of Originator::"GetMemento()"
+note right of Originator::"CreateMemento()"
 var memento = new ConcreteMemento
 foreach field or property
     memento.field = this.field

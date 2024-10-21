@@ -4,7 +4,7 @@
 
 #set align(center)
 
-#text("Studienarbeit", size: 17.28pt, weight: "bold")
+#text("Abschlussarbeit", size: 17.28pt, weight: "bold")
 
 #v(1cm)
 

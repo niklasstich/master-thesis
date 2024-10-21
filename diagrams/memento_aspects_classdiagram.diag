@@ -1,0 +1,49 @@
+@startuml memento_aspects_classdiagram
+
+'left to right direction
+top to bottom direction
+'skinparam linetype ortho
+skinparam linetype polyline
+set separator ::
+interface IOriginator {
+    +IMemento CreateMemento()
+    +void RestoreMemento(IMemento memento)
+}
+interface IMemento
+enum StrictnessMode {
+    Loose, Strict
+}
+enum MemberMode {
+    All, FieldsOnly, PropertiesOnly
+}
+
+class MementoIgnoreAttribute <<Attribute>>
+class MementoAttribute <<TypeAspect>>
+class MementoRestoreHookAttribute <<MethodAspect>>
+class MementoCreateHookAttribute <<MethodAspect>>
+
+IMemento <.. IOriginator
+IOriginator <.. MementoAttribute
+IMemento <.. MementoAttribute
+MementoIgnoreAttribute <.. MementoAttribute
+StrictnessMode -- MementoAttribute
+MemberMode -- MementoAttribute
+MementoAttribute <.. MementoRestoreHookAttribute
+MementoAttribute <.. MementoCreateHookAttribute
+IMemento <.d. MementoRestoreHookAttribute
+IMemento <.d. MementoCreateHookAttribute
+
+'abstract class Metalama::TypeAspect {
+'    + virtual void BuildAspect(IAspectBuilder<INamedType> builder)
+'    + virtual void BuildEligibility(IEligibilityBuilder<INamedType> builder)
+'}
+'abstract class Metalama::MethodAspect {
+'    + virtual void BuildAspect(IAspectBuilder<IMethod> builder)
+'    + virtual void BuildEligibility(IEligibilityBuilder<IMethod> builder)
+'}
+'
+'TypeAspect <|-- MementoAttribute
+'MethodAspect <|--MementoCreateHookAttribute
+'MethodAspect <|--MementoRestoreHookAttribute
+
+@enduml
