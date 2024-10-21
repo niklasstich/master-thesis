@@ -1,0 +1,23 @@
+@startuml legend
+
+left to right direction
+set separator ::
+title Plantuml symbol legend
+class Namespace::Class <<stereotype>>
+abstract class AbstractClass
+enum Enumeration
+interface Interface
+interface AnotherInterface
+
+AnotherInterface --|> Interface : extends
+Class ..> AnotherInterface : implements
+
+class User
+class Used
+User ..> Used: uses
+
+House "1" --* "1..*" Room : composition
+School --o Student : aggregation
+Person -- Document : association
+
+@enduml
