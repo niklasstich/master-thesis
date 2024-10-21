@@ -1,0 +1,63 @@
+@startuml metalama_stereotypes
+top to bottom direction
+set separator ::
+
+abstract class System::Attribute
+abstract class Metalama::Aspect {
+    + string override ToString()
+}
+interface Metalama::IDeclaration
+interface Metalama::IEligible<T : class, IDeclaration> {
+    + void BuildEligibility(IEligibilityBuilder<T> builder)
+}
+interface Metalama::IAspect<T : class, IDeclaration> {
+    + void BuildAspect(IAspectBuilder<T> builder)
+}
+
+
+
+Attribute <|-- Aspect
+IAspect <|.. Aspect
+IDeclaration <.. IAspect
+IDeclaration <.. IEligible
+IEligible <|-- IAspect : extends with T=T
+
+
+interface Metalama::INamedType 
+interface Metalama::IMethod 
+
+abstract class Metalama::TypeAspect {
+
+}
+
+Aspect <|-- TypeAspect
+IAspect <|.. TypeAspect : implements with T=INamedType 
+INamedType <.. TypeAspect
+
+abstract class Metalama::MethodAspect {
+
+}
+
+Aspect <|-- MethodAspect
+IAspect <|.. MethodAspect : implements with T=IMethod 
+IMethod <.. MethodAspect
+
+class Moyou::MyAttribute <<Attribute>>
+Attribute <|-- MyAttribute
+
+class Moyou::MyTypeAspect <<TypeAspect>> {
+    + void override BuildAspect(IAspectBuilder<INamedType> builder)
+    + void override BuildEligibility(IEligibilityBuilder<INamedType> builder)
+}
+TypeAspect <|-- MyTypeAspect
+
+class Moyou::MyMethodAspect <<MethodAspect>> {
+    + void override BuildAspect(IAspectBuilder<IMethod> builder)
+    + void override BuildEligibility(IEligibilityBuilder<IMethod> builder)
+}
+MethodAspect <|-- MyMethodAspect
+
+
+
+
+@enduml

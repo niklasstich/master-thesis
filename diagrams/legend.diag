@@ -3,14 +3,23 @@
 left to right direction
 set separator ::
 title Plantuml symbol legend
-class Namespace::Class <<stereotype>>
+class Namespace::Class <<stereotype>> {
+    + string PublicProperty {public get; private set;}
+    - int _privateField
+    + {static} string Static {get; set;}
+    + {abstract} int AbstractMethod()
+    # void ProtectedMethod(int Foobar)
+}
 abstract class AbstractClass
-enum Enumeration
+enum Enumeration {
+    One, Two, Three, Four
+}
 interface Interface
 interface AnotherInterface
 
 AnotherInterface --|> Interface : extends
-Class ..> AnotherInterface : implements
+Class ..|> AnotherInterface : implements
+AnotherClass --|> Class : extends
 
 class User
 class Used
