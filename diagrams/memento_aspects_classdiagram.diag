@@ -18,9 +18,20 @@ enum MemberMode {
 }
 
 class MementoIgnoreAttribute <<Attribute>>
-class MementoAttribute <<TypeAspect>>
-class MementoRestoreHookAttribute <<MethodAspect>>
-class MementoCreateHookAttribute <<MethodAspect>>
+class MementoAttribute <<TypeAspect>> {
+    + StrictnessMode StrictnessMode {get; set;}
+    + MemberMode MemberMode {get; set;}
+    + override void BuildAspect(IAspectBuilder<INamedType> builder)
+    + override void BuildEligibility(IEligibilityBuilder<INamedType> builder)
+}
+class MementoRestoreHookAttribute <<MethodAspect>> {
+    + override void BuildAspect(IAspectBuilder<IMethod> builder)
+    + override void BuildEligibility(IEligibilityBuilder<IMethod> builder)
+}
+class MementoCreateHookAttribute <<MethodAspect>> {
+    + override void BuildAspect(IAspectBuilder<IMethod> builder)
+    + override void BuildEligibility(IEligibilityBuilder<IMethod> builder)
+}
 
 IMemento <.. IOriginator
 IOriginator <.. MementoAttribute

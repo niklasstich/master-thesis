@@ -1,0 +1,10 @@
+@startuml memento_aspectorder_comp
+start
+:MementoAttribute;
+fork
+    :MementoCreateHookAttribute;
+fork again 
+    :MementoRestoreHookAttribute;
+end fork {and}
+end
+@enduml
