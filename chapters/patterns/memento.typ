@@ -1,3 +1,6 @@
+#import "../../codly/codly.typ": * 
+#import "../../config.typ": ct
+
 = Memento
 
 == Analysis of pattern<memento_analysis>
@@ -75,7 +78,7 @@ For memento we must specify the order explicitly, because the `MementoRestoreHoo
 === MementoAttribute <mementoattributeimpl>
 As explained in TODO-REFERENCE-CHAPTER, before we begin execution of the `BuildAspect` logic, we first check the eligibility of the target declaration for this aspect. In the case of memento, this is defined as the target type being neither abstract nor an interface, as can be seen in @memento_eligibility:
 #figure(
-```csharp
+```cs
 public class MementoAttribute : TypeAspect 
 {
   public override void BuildEligibility(IEligibilityBuilder<INamedType> builder)
@@ -92,7 +95,7 @@ If this check succeeds, `BuildAspect` is called and the aspect executes the foll
 ==== Find relevant members<memento_find_members>
 Depending on the setting of `MemberMode`, we either gather only fields, only properties, or all fields and properties of the target type and filter them by by writeability, retaining only members that can be written to at all times (i.e. a property with a `set` method or simply a non-readonly field), as constructor-only or init-only members cannot be restored later on. We also filter out all members that are marked with the `[MementoIgnore]` attribute and so-called anonymous backing fields of auto-implemented properties: "When you declare a property as shown in the following example [@autoprop_example], the compiler creates a private, anonymous backing field that can only be accessed through the property's get and set accessors." @dotnetdocs["Auto-Implemented Properties (C\# Programming Guide)"].
 #figure(
-```csharp
+```cs
 public class Customer
 {
     // Auto-implemented properties for trivial get and set
@@ -117,7 +120,7 @@ If the `StrictnessMode` is set to strict, we now report all members for which we
 ==== Configure memento class
 Before adding all necessary fields to the memento child type of the originator, we must first check that it is actually present on the target type. In case it is not present, we introduce a new empty class named `Memento` inside the originator. We must then also acquire a reference to our memento type so we can configure it afterwards. All of this can be done quite elegantly via the Metalama `builder.Advice` class:
 #figure(
-```csharp
+```cs
 var res = builder.Advice.IntroduceClass(builder.Target, "Memento", OverrideStrategy.Ignore);
 if (res.Outcome == AdviceOutcome.Default)
 {
@@ -147,7 +150,7 @@ In case that the memento type did not exist yet, we also emit a warning to the u
 We can then add the required fields to this nested type via `builder.Advice.IntroduceField` as seen in @memento_add_fields_to_memento by simply iterating over the list of relevant members we've found earlier in @memento_find_members, creating a piece of advice for each member with the reference to the nested type, the name and type of the member, specifying to make this field an instance field (rather than a static one) and public accessibility. This list of advice results is then mapped into a list of the declarations they created so we can reference them in @memento_method_impl.
 
 #figure(
-```csharp
+```cs
 var introducedFieldsOnMemento = IntroduceMementoTypeFields();
 
 IEnumerable<IField> IntroduceMementoTypeFields() => relevantMembers
@@ -165,7 +168,7 @@ IEnumerable<IField> IntroduceMementoTypeFields() => relevantMembers
 ==== Implement interfaces
 In order to keep the concrete memento type hidden from caretakers, we must implement the `IMemento` interface on our new `Memento` type as previously explained in @memento_analysis. We also implement `IOriginator` on the target type in @memento_impl_interfaces.
 #figure(
-```csharp
+```cs
 builder.Advice.ImplementInterface(nestedMementoType, typeof(IMemento),
   OverrideStrategy.Ignore);
 builder.Advice.ImplementInterface(builder.Target, typeof(IOriginator), 
@@ -177,7 +180,7 @@ builder.Advice.ImplementInterface(builder.Target, typeof(IOriginator),
 ==== Method implementation <memento_method_impl> 
 After finding all relevant members of the type, warning about uncopyable reference types, creating and configuring our memento class and implementing the relevant interfaces, we can now finally implement the actual logic of the memento pattern. First of all, we must introduce two methods to satisfy the `IOriginator` interface we've just implemented on our target type: 
 #figure(
-```csharp
+```cs
 [InterfaceMember]
 public void RestoreMemento(IMemento memento)
 {
@@ -195,8 +198,25 @@ public IMemento CreateMemento()
 The two methods shown in @memento_interface_methods have the exact same signature as the methods in the `IOriginator` interface and are defined on our `MementoAttribute` type. They are decorated with the `[InterfaceMember]` attribute, which itself is a specialization of the `TemplateAttribute` introduced in TODO-REFERENCE-CHAPTER. The reason we prefer to use `[InterfaceMember]` over `[Template]` in this case is because Metalama will handle adding the methods to the target type for us: "This attribute instructs Metalama to introduce the member to the target class but _only_ if the ImplementInterface succeeds. If the advice is ignored because the type already implements the interface and `OverrideStrategy.Ignore` has been used, the member will not be introduced to the target type."@metadocs[Implementing Interfaces]. In our case however, we use `OverrideStrategy.Override` to ensure that even if `IOriginator` were already implemented on the type, we will still introduce our methods.
 
 The methods we introduced here are merely stubs that call another method on the type which handles the actual logic. In @memento_restore_implmethod we can see the template for generating the actual restore implementation. In order to make this code snippet more easily digestable for readers that are new to compile-time code generation, the lines that are executed at compile-time will be coloured in a shade of pink. The uncoloured lines are lines of code that will only be executed at run-time, and therefore end up in the actual generated code. This convention will be used for the rest of the paper whenever compile-time and run-time code are mixed in method templates like this.
+#codly(
+  highlights: (
+    ct(0),
+    ct(2, start: 5),
+    ct(3, start: 5),
+    ct(4, start: 5),
+    ct(9, start: 22, tag: "[1]", label: <memento_restore_implmetod_metacast>),
+    ct(11, start: 9),
+    ct(12, start: 9),
+    ct(13, start: 9),
+    ct(14, start: 13),
+    ct(15, start: 15),
+    ct(16, start: 15),
+    ct(17, start: 13, tag:"[2]", label: <memento_restore_implmethod_assignment>),
+  ),
+
+)
 #figure(
-```csharp
+```cs
 [Template]
 public void RestoreMementoImpl(IMemento memento,
     [CompileTime] INamedType nestedMementoType,
@@ -207,13 +227,13 @@ public void RestoreMementoImpl(IMemento memento,
     try
     {
         var cast = meta.Cast(nestedMementoType, memento);
-        //if (cast is null) return;
         //prevent multiple enumerations
         var mementoTypeMembers = introducedFieldsOnMemento.ToList();
         foreach (var fieldOrProp in relevantMembers)
         {
-            var nestedTypeMember =
-                mementoTypeMembers.First(m => m.Name == fieldOrProp.Name).With((IExpression)cast!);
+            var nestedTypeMember = mementoTypeMembers
+              .First(m => m.Name == fieldOrProp.Name)
+              .With((IExpression)cast!);
             fieldOrProp.Value = nestedTypeMember.Value;
         }
     }
@@ -224,8 +244,12 @@ public void RestoreMementoImpl(IMemento memento,
 }
 ```, caption: [`RestoreMementoImpl` method template code snippet]
 )<memento_restore_implmethod>
+//]
+
+In @memento_restore_implmethod
+
 #figure(
-```csharp
+```cs
 [Template]
 public IMemento CreateMementoImpl<[CompileTime] TMementoType>(
     [CompileTime] IEnumerable<IFieldOrProperty> relevantMembers,

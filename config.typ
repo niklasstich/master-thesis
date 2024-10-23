@@ -1,3 +1,4 @@
+#import "codly/codly.typ": *
 #let template(doc) = [
   //Metadaten für das Dokument, bitte selbst einfügen
   #set document(author: "", title: "", date: auto, keywords: "")
@@ -34,19 +35,22 @@
   //Den Zitierstil muss man aber sowieso mit dem jeweiligen Betreuer absprechen!
   //Quelle für die csl-Datei: https://www.zotero.org/styles?format=label (Stand 4.4.24)
 
-  #import "@preview/codly:1.0.0": *
   #show: codly-init.with()
   #show raw: set text(font: "Fira Code", ligatures: true)
   #codly(
     languages: (
-      csharp: (
+      cs: (
         name: "C#",
         color: rgb(76, 156,	58) 
       )
-    )
+    ),
+    reference-by: "item"
   )
   //#set raw(syntaxes:"code-syntax-highlighting/csharp-syntax.sublime-syntax", theme: "code-syntax-highlighting/kanagawa.tmTheme")
   //#set raw(syntaxes:"code-syntax-highlighting/csharp-syntax.sublime-syntax", theme: "code-syntax-highlighting/kanagawa.tmTheme")
 
   #doc
 ]
+
+#let ct-pink = color.rgb("#e015c263")
+#let ct(ln, start: none, end: none, tag: none, label: none) = (line: ln, start: start, end: end, fill: ct-pink, tag: tag, label: label)

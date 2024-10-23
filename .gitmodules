@@ -1,0 +1,3 @@
+[submodule "codly"]
+	path = codly
+	url = git@github.com:Dherse/codly.git
