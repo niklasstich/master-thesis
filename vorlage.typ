@@ -5,6 +5,10 @@
 #pagebreak(weak: true)
 
 #include "chapters/abstract.typ"
+
+#set page(numbering: "1")
+#counter(page).update(1)
+
 #include "chapters/toc.typ"
 
 #include "chapters/introduction.typ"

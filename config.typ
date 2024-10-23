@@ -5,10 +5,13 @@
   //Einstellung für Seiten
   #set page(paper: "a4", margin: (left: 25mm, right: 20mm, top: 25mm, bottom: 25mm))
 
+
   //Einstellungen für Text
   #set text(size: 12pt, font: "New Computer Modern")
   #set par(leading: 0.55em, justify: true, linebreaks: "optimized")
-  #show par: set block(spacing: 0.55em)
+  //#show par: set block(spacing: 0.55em)
+  //#set block(spacing: 0.55em)
+
 
   //Einstellungen für Überschriften
   #set heading(numbering: "1.1")
@@ -20,6 +23,10 @@
   // #show figure.where(kind: image): set figure(supplement: "Abbildung")
   // #show figure.where(kind: table): set figure(supplement: "Tabelle")
   #set figure(numbering: "1.1")
+
+  //make raw text/code figures breakable
+  #show figure.where(kind: raw): set block(breakable: true)
+
   //Per-section-numbering ist in typst aktuell (04/24) noch nicht supported und ist auf der roadmap. D.h. die nummerierung ist 1, 2, 3 statt 1.1, 1.2, 2.1
   //Man kann das mit dem numbering-parameter manuell überschreiben, ist aber nicht ganz sinn der sache
   #set bibliography(style: "Literatur/din-1505-2-alphanumeric.csl")

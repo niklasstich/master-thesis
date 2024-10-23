@@ -129,9 +129,20 @@ if (res.Outcome == AdviceOutcome.Default)
 var nestedMementoType = res.Outcome == AdviceOutcome.Default
     ? res.Declaration
     : builder.Target.NestedTypes.First(NestedTypeIsEligible);
+[...]
+private static bool NestedTypeIsEligible(INamedType nestedType)
+{
+    return nestedType is
+    {
+        Name: "Memento", Accessibility: Accessibility.Private,
+        TypeKind: TypeKind.Class or TypeKind.RecordClass or TypeKind.RecordStruct or TypeKind.Struct
+    };
+}
 ```, caption: [Introducing "Memento" child class code snippet]
 )<memento_introduce_child>
-As we can see in @memento_introduce_child, we can call the `builder.Advice.IntroduceClass` method with our originator class (`builder.Target`) as the declaration target, the string "Memento" as a name and the `OverrideStrategy.None` value to create a nested class with said name inside of our target type. In case the class does not yet exist, the given `res.Outcome` will be equal to `AdviceOutcome.Default`, and we know that we must take our newly created declaration out of the advice result via `res.Declaration`. If it already exists however, `OverrideStrategy.None` tells Metalama to simply do nothing with our given advice, and `res.Outcome` will be equal to `AdviceOutcome.Ignore` instead, in which case we take the first nested type of our target type which matches the criteria for the memento type.
+As we can see in @memento_introduce_child, we can call the `builder.Advice.IntroduceClass` method with our originator class (`builder.Target`) as the declaration target, the string "Memento" as a name and the `OverrideStrategy.None` value to create a nested class with said name inside of our target type. In case the class does not yet exist, the given `res.Outcome` will be equal to `AdviceOutcome.Default`, and we know that we must take our newly created declaration out of the advice result via `res.Declaration`. If it already exists however, `OverrideStrategy.None` tells Metalama to simply do nothing with our given advice, and `res.Outcome` will be equal to `AdviceOutcome.Ignore` instead, in which case we take the first nested type of our target type which matches the criteria for the memento type (name equal to `Memento`, private accessibility, and either a class, struct, record class or record struct).
+
+In case that the memento type did not exist yet, we also emit a warning to the user here, stating that the type was automatically generated and that they must use a fully qualified name of the memento type (e.g. `Originator.Memento`) in the signature of any methods marked with `MementoCreateHookAttribute` or `MementoRestoreHookAttribute` or alternatively define the type themselves. The reason for this limitation will be explained in @memento_tech_limitations.
 
 We can then add the required fields to this nested type via `builder.Advice.IntroduceField` as seen in @memento_add_fields_to_memento by simply iterating over the list of relevant members we've found earlier in @memento_find_members, creating a piece of advice for each member with the reference to the nested type, the name and type of the member, specifying to make this field an instance field (rather than a static one) and public accessibility. This list of advice results is then mapped into a list of the declarations they created so we can reference them in @memento_method_impl.
 
@@ -164,14 +175,100 @@ builder.Advice.ImplementInterface(builder.Target, typeof(IOriginator),
 
 
 ==== Method implementation <memento_method_impl> 
+After finding all relevant members of the type, warning about uncopyable reference types, creating and configuring our memento class and implementing the relevant interfaces, we can now finally implement the actual logic of the memento pattern. First of all, we must introduce two methods to satisfy the `IOriginator` interface we've just implemented on our target type: 
+#figure(
+```csharp
+[InterfaceMember]
+public void RestoreMemento(IMemento memento)
+{
+    meta.This.RestoreMementoImpl(memento);
+}
 
+[InterfaceMember]
+public IMemento CreateMemento()
+{
+    return meta.This.CreateMementoImpl();
+}
+```, caption: [Introducing methods to fulfill `IOriginator` interface code snippet]
+)<memento_interface_methods>
+
+The two methods shown in @memento_interface_methods have the exact same signature as the methods in the `IOriginator` interface and are defined on our `MementoAttribute` type. They are decorated with the `[InterfaceMember]` attribute, which itself is a specialization of the `TemplateAttribute` introduced in TODO-REFERENCE-CHAPTER. The reason we prefer to use `[InterfaceMember]` over `[Template]` in this case is because Metalama will handle adding the methods to the target type for us: "This attribute instructs Metalama to introduce the member to the target class but _only_ if the ImplementInterface succeeds. If the advice is ignored because the type already implements the interface and `OverrideStrategy.Ignore` has been used, the member will not be introduced to the target type."@metadocs[Implementing Interfaces]. In our case however, we use `OverrideStrategy.Override` to ensure that even if `IOriginator` were already implemented on the type, we will still introduce our methods.
+
+The methods we introduced here are merely stubs that call another method on the type which handles the actual logic. In @memento_restore_implmethod we can see the template for generating the actual restore implementation. In order to make this code snippet more easily digestable for readers that are new to compile-time code generation, the lines that are executed at compile-time will be coloured in a shade of pink. The uncoloured lines are lines of code that will only be executed at run-time, and therefore end up in the actual generated code. This convention will be used for the rest of the paper whenever compile-time and run-time code are mixed in method templates like this.
+#figure(
+```csharp
+[Template]
+public void RestoreMementoImpl(IMemento memento,
+    [CompileTime] INamedType nestedMementoType,
+    [CompileTime] IEnumerable<IFieldOrProperty> relevantMembers,
+    [CompileTime] IEnumerable<IFieldOrProperty> introducedFieldsOnMemento
+)
+{
+    try
+    {
+        var cast = meta.Cast(nestedMementoType, memento);
+        //if (cast is null) return;
+        //prevent multiple enumerations
+        var mementoTypeMembers = introducedFieldsOnMemento.ToList();
+        foreach (var fieldOrProp in relevantMembers)
+        {
+            var nestedTypeMember =
+                mementoTypeMembers.First(m => m.Name == fieldOrProp.Name).With((IExpression)cast!);
+            fieldOrProp.Value = nestedTypeMember.Value;
+        }
+    }
+    catch (InvalidCastException icex)
+    {
+        throw new ArgumentException("Incorrect memento type", nameof(memento), icex);
+    }
+}
+```, caption: [`RestoreMementoImpl` method template code snippet]
+)<memento_restore_implmethod>
+#figure(
+```csharp
+[Template]
+public IMemento CreateMementoImpl<[CompileTime] TMementoType>(
+    [CompileTime] IEnumerable<IFieldOrProperty> relevantMembers,
+    [CompileTime] IEnumerable<IFieldOrProperty> introducedFieldsOnMemento,
+    IAspectBuilder<INamedType> builder) where TMementoType : IMemento, new()
+{
+    var memento = new TMementoType();
+    //prevent multiple enumerations
+    var relevantMembersList = relevantMembers.ToList();
+    var introducedFieldsOnMementoList = introducedFieldsOnMemento.ToList();
+    foreach (var sourceFieldOrProp in relevantMembersList)
+    {
+        var targetFieldOrProp = introducedFieldsOnMementoList
+            .Single(memFieldOrProp => memFieldOrProp.Name == sourceFieldOrProp.Name).With(memento);
+        if (!(sourceFieldOrProp.Type.IsReferenceType ?? false))
+            targetFieldOrProp.Value = sourceFieldOrProp.Value;
+        else if (sourceFieldOrProp.Type.Is(SpecialType.String, ConversionKind.TypeDefinition)) //strings are immutable
+            targetFieldOrProp.Value = sourceFieldOrProp.Value;
+        else if (sourceFieldOrProp.Type.Is(typeof(ICloneable)))
+        {
+            targetFieldOrProp.Value = meta.Cast(sourceFieldOrProp.Type,
+                sourceFieldOrProp.Value is not null ? sourceFieldOrProp.Value?.Clone() : null);
+        }
+        else if (sourceFieldOrProp.Type.Is(SpecialType.IEnumerable_T, ConversionKind.TypeDefinition))
+        {
+            HandleIEnumerable(sourceFieldOrProp, targetFieldOrProp, builder);
+        }
+        else
+        {
+            targetFieldOrProp.Value = sourceFieldOrProp.Value;
+        }
+    }
+    return memento;
+}
+```, caption: [`CreateMementoImpl` method template code snippet]
+)<memento_create_implmethod>
 
 
 === CreateHookAttribute and RestoreHookAttribute <createandrestorehookimpl>
 
 
 
-== Technical limitations
+== Technical limitations <memento_tech_limitations>
 == Example application of pattern with and without aspects
 == Impact and consequences
 
