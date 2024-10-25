@@ -117,7 +117,7 @@ Unfortunately, Metalama does not directly offer us a way to recognize a field as
 ==== StrictnessMode diagnostics
 If the `StrictnessMode` is set to strict, we now report all members for which we do not have a value retaining copy heuristic in @memento_method_impl as a warning. This means that the reference to the value of the member will be simply copied, which as discussed in @memento_analysis might not always be the intended behaviour. This is also the reason why `StrictnessMode` is set to strict by default, as to force the user to acknowledge that this is how their memento implementation will behave. In order to get rid of the warning, the user then has the choice to either implement `ICloneable` on the object, essentially turning the shallow copy into a deep copy, or simply set the `StrictnessMode` to loose.
 
-==== Configure memento class
+==== Configure memento class <memento_configure_child>
 Before adding all necessary fields to the memento child type of the originator, we must first check that it is actually present on the target type. In case it is not present, we introduce a new empty class named `Memento` inside the originator. We must then also acquire a reference to our memento type so we can configure it afterwards. All of this can be done quite elegantly via the Metalama `builder.Advice` class:
 #figure(
 ```cs
@@ -204,14 +204,15 @@ The methods we introduced here are merely stubs that call another method on the 
     ct(2, start: 5),
     ct(3, start: 5),
     ct(4, start: 5),
-    ct(9, start: 22, tag: "[1]", label: <memento_restore_implmetod_metacast>),
+    ct(9, start: 22, tag: "[1]", label: <memento_restore_implmethod_metacast>),
     ct(11, start: 9),
     ct(12, start: 9),
     ct(13, start: 9),
     ct(14, start: 13),
     ct(15, start: 15),
     ct(16, start: 15),
-    ct(17, start: 13, tag:"[2]", label: <memento_restore_implmethod_assignment>),
+    ct(17, start: 13, end:27, tag:"[2]", label: <memento_restore_implmethod_assignment_left>),
+    ct(18, start: 15, tag:"[3]", label: <memento_restore_implmethod_assignment_right>),
   ),
 
 )
@@ -234,7 +235,8 @@ public void RestoreMementoImpl(IMemento memento,
             var nestedTypeMember = mementoTypeMembers
               .First(m => m.Name == fieldOrProp.Name)
               .With((IExpression)cast!);
-            fieldOrProp.Value = nestedTypeMember.Value;
+            fieldOrProp.Value =
+             nestedTypeMember.Value;
         }
     }
     catch (InvalidCastException icex)
@@ -246,7 +248,15 @@ public void RestoreMementoImpl(IMemento memento,
 )<memento_restore_implmethod>
 //]
 
-In @memento_restore_implmethod
+The template to our restore implementation takes several compile-time arguments in order to generate the required logic. First, we must have access to the type information of our memento type, `nestedMementoType`, in order to cast the anonymized `IMemento` object we receive into the proper memento type in line 10. Second, we need references to all the fields and properties on the originator into which the state needs to be restored, and last, we need to have references to the fields on the memento type which we've introduced in @memento_configure_child.
+
+The expression marked in @memento_restore_implmethod_metacast is a compile-time expression using the `meta.Cast` method, but this actually generates a run-time expression with a hard cast, a type cast in the form of `((TTarget)value)` which throws an `ArgumentException` when the cast is invalid, as opposed to a soft cast in the form of `(value as TTarget)` which coalesces to null when the type cast is impossible @dotnetdocs[Type-testing operators and cast expression]. In case said hard cast fails, we wrap the `InvalidCastException` in our own exception with additional context and rethrow it (lines 21-24). 
+
+We then iterate over all members of the originator that must be restored, look for the (single) field on the memento type that matches it's name, and turn our `IFieldOrProperty` reference into an `IFieldOrPropertyInvoker` via the `.With(value)` syntax, which lets us shift the sematics of `nestedTypeMember` from a field on a type to a field on a value.
+
+Now can now simply finish the assignment by assigning the value from the memento to the originator in line 18-19. We have to be precise about the semantics of `.Value()` in this code snippet however. Both @memento_restore_implmethod_assignment_left and @memento_restore_implmethod_assignment_right are compile-time expressions (because both `fieldOrProp` and `nestedTypeMember` are compile-time variables), our assignment (the `=` sign) itself is run-time code, and our code is currently executing in a compile-time context, so we could not possibly access the *actual* underlying values of these fields here, but instead merely generate the *syntax* for accessing them. The Metalama compiler then turns this into a run-time expression using the `IExpression` objects the `.Value()` method returns on both sides of the assignment.
+
+
 
 #figure(
 ```cs
