@@ -7,5 +7,5 @@
 })
 #heading(outlined: false, numbering: none, "Table of contents")
 #v(1em)
-#outline(title: none, indent: auto, target: heading)
+#outline(title: none, indent: auto, target: heading, depth: 10)
 #pagebreak(weak: true)

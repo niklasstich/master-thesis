@@ -114,7 +114,7 @@ These fields are usually intentionally invisible to the user in normal code, but
 
 Unfortunately, Metalama does not directly offer us a way to recognize a field as a backing field for an auto property, but it's still possible to recognize them via simple string comparison of the field's name, as they always end with a specific string and also contain characters (such as `<` and `>`) that would be illegal in user-provided code, e.g. `<A>k__BackingField`.
 
-==== StrictnessMode diagnostics
+==== StrictnessMode diagnostics<memento_strict_diagnostics>
 If the `StrictnessMode` is set to strict, we now report all members for which we do not have a value retaining copy heuristic in @memento_method_impl as a warning. This means that the reference to the value of the member will be simply copied, which as discussed in @memento_analysis might not always be the intended behaviour. This is also the reason why `StrictnessMode` is set to strict by default, as to force the user to acknowledge that this is how their memento implementation will behave. In order to get rid of the warning, the user then has the choice to either implement `ICloneable` on the object, essentially turning the shallow copy into a deep copy, or simply set the `StrictnessMode` to loose.
 
 ==== Configure memento class <memento_configure_child>
@@ -213,6 +213,7 @@ The methods we introduced here are merely stubs that call another method on the 
     ct(16, start: 15),
     ct(17, start: 13, end:27, tag:"[2]", label: <memento_restore_implmethod_assignment_left>),
     ct(18, start: 15, tag:"[3]", label: <memento_restore_implmethod_assignment_right>),
+    ct(19, start: 9),
   ),
 
 )
@@ -250,60 +251,172 @@ public void RestoreMementoImpl(IMemento memento,
 
 The template to our restore implementation takes several compile-time arguments in order to generate the required logic. First, we must have access to the type information of our memento type, `nestedMementoType`, in order to cast the anonymized `IMemento` object we receive into the proper memento type in line 10. Second, we need references to all the fields and properties on the originator into which the state needs to be restored, and last, we need to have references to the fields on the memento type which we've introduced in @memento_configure_child.
 
-The expression marked in @memento_restore_implmethod_metacast is a compile-time expression using the `meta.Cast` method, but this actually generates a run-time expression with a hard cast, a type cast in the form of `((TTarget)value)` which throws an `ArgumentException` when the cast is invalid, as opposed to a soft cast in the form of `(value as TTarget)` which coalesces to null when the type cast is impossible @dotnetdocs[Type-testing operators and cast expression]. In case said hard cast fails, we wrap the `InvalidCastException` in our own exception with additional context and rethrow it (lines 21-24). 
+The expression marked in @memento_restore_implmethod_metacast is a compile-time expression using the `meta.Cast` method, but this actually generates a run-time expression with a hard cast, that is, a type cast in the form of `((TTarget)value)` which throws an `ArgumentException` when the cast is invalid, as opposed to a soft cast in the form of `(value as TTarget)` which coalesces to null when the type cast is impossible @dotnetdocs[Type-testing operators and cast expression]. In case said hard cast fails, we wrap the `InvalidCastException` in our own exception with additional context and rethrow it (lines 21-24). 
 
-We then iterate over all members of the originator that must be restored, look for the (single) field on the memento type that matches it's name, and turn our `IFieldOrProperty` reference into an `IFieldOrPropertyInvoker` via the `.With(value)` syntax, which lets us shift the sematics of `nestedTypeMember` from a field on a type to a field on a value.
+We then iterate over all members of the originator that must be restored using a `foreach` loop and because this loop iterates over compile-time variables, it remains strictly in our compile-time logic and no loop is generated in the run-time code. We then look for the (single) field on the memento type that matches the name of the field or property, and turn our `IFieldOrProperty` reference into an `IFieldOrPropertyInvoker` via the `.With(value)` syntax, which lets us shift the sematics of `nestedTypeMember` from a field on a type to a field on a value, meaning we can now generate an expression that accesses the member of an instance of the concrete memento type. 
 
-Now can now simply finish the assignment by assigning the value from the memento to the originator in line 18-19. We have to be precise about the semantics of `.Value()` in this code snippet however. Both @memento_restore_implmethod_assignment_left and @memento_restore_implmethod_assignment_right are compile-time expressions (because both `fieldOrProp` and `nestedTypeMember` are compile-time variables), our assignment (the `=` sign) itself is run-time code, and our code is currently executing in a compile-time context, so we could not possibly access the *actual* underlying values of these fields here, but instead merely generate the *syntax* for accessing them. The Metalama compiler then turns this into a run-time expression using the `IExpression` objects the `.Value()` method returns on both sides of the assignment.
+Now can now simply finish the assignment by assigning the value from the memento to the originator in line 18-19. We have to be precise about the semantics of `.Value()` in this code snippet however. Both @memento_restore_implmethod_assignment_left and @memento_restore_implmethod_assignment_right are compile-time expressions (because both `fieldOrProp` and `nestedTypeMember` are compile-time variables), our assignment (the `=` sign) itself is run-time code, and our code is currently executing in a compile-time context, so we could not possibly access the *actual* underlying values of these fields here, but instead merely generate the *syntax* for accessing them. The Metalama compiler then turns this into a run-time expression using the `IExpression` objects the `.Value()` method returns on both sides of the assignment. Again, because we are in a compile-time `foreach` loop iterating over the relevant fields and properties of the originator, we do this for each of these members.
 
-
-
+Next, we'll look at the implementation of the create method, which is a lot more complicated, in @memento_create_implmethod.
+#codly(
+  highlights: (
+    ct(0),
+    ct(1, start: 35, end: 55),
+    ct(2, start: 5),
+    ct(3, start: 5),
+    ct(4, start: 7),
+    ct(6, start: 20),
+    ct(8, start: 6),
+    ct(9, start: 6),
+    ct(10, start: 8),
+    ct(11, start: 7),
+    ct(12, start: 5),
+    ct(13, start: 10),
+    ct(14, start: 13),
+    ct(15, start: 15),
+    ct(16, start: 13),
+    ct(17, start: 13),
+    ct(18, start: 10, tag:"[1]", label: <memento_create_implmethod_value>),
+    ct(19, start: 13, end: 31),
+    ct(19, start: 39),
+    ct(20, start: 10),
+    ct(21, start: 11, tag:"[2]", label: <memento_create_implmethod_string>),
+    ct(23, start: 13, end: 31),
+    ct(23, start: 39),
+    ct(24, start: 10, tag:"[3]", label: <memento_create_implmethod_cloneable>),
+    ct(25, start: 13, end: 31),
+    ct(25, start: 39),
+    ct(26, start: 15),
+    ct(27, start: 15),
+    ct(28, start: 15),
+    ct(29, start: 13),
+    ct(30, start: 10),
+    ct(31, start: 13),
+    ct(32, start: 9, tag:"[4]", label: <memento_create_implmethod_enumerable>),
+    ct(33, start: 11),
+    ct(34, start: 10, tag:"[5]", label: <memento_create_implmethod_default>),
+    ct(35, start: 13, end: 31),
+    ct(35, start: 39),
+    ct(36, start: 5),
+  ),
+)
 #figure(
 ```cs
 [Template]
 public IMemento CreateMementoImpl<[CompileTime] TMementoType>(
     [CompileTime] IEnumerable<IFieldOrProperty> relevantMembers,
-    [CompileTime] IEnumerable<IFieldOrProperty> introducedFieldsOnMemento,
-    IAspectBuilder<INamedType> builder) where TMementoType : IMemento, new()
+    [CompileTime] IEnumerable<IFieldOrProperty> introducedFieldsOnMemento
+    ) where TMementoType : IMemento, new()
 {
     var memento = new TMementoType();
     //prevent multiple enumerations
     var relevantMembersList = relevantMembers.ToList();
-    var introducedFieldsOnMementoList = introducedFieldsOnMemento.ToList();
+    var introducedFieldsOnMementoList =
+      introducedFieldsOnMemento.ToList();
     foreach (var sourceFieldOrProp in relevantMembersList)
     {
         var targetFieldOrProp = introducedFieldsOnMementoList
-            .Single(memFieldOrProp => memFieldOrProp.Name == sourceFieldOrProp.Name).With(memento);
+            .Single(memFieldOrProp => 
+              memFieldOrProp.Name == sourceFieldOrProp.Name
+            )
+            .With(memento);
         if (!(sourceFieldOrProp.Type.IsReferenceType ?? false))
             targetFieldOrProp.Value = sourceFieldOrProp.Value;
-        else if (sourceFieldOrProp.Type.Is(SpecialType.String, ConversionKind.TypeDefinition)) //strings are immutable
+        else if (sourceFieldOrProp.Type
+          .Is(SpecialType.String, ConversionKind.TypeDefinition)
+        ) 
             targetFieldOrProp.Value = sourceFieldOrProp.Value;
         else if (sourceFieldOrProp.Type.Is(typeof(ICloneable)))
-        {
-            targetFieldOrProp.Value = meta.Cast(sourceFieldOrProp.Type,
-                sourceFieldOrProp.Value is not null ? sourceFieldOrProp.Value?.Clone() : null);
-        }
-        else if (sourceFieldOrProp.Type.Is(SpecialType.IEnumerable_T, ConversionKind.TypeDefinition))
-        {
-            HandleIEnumerable(sourceFieldOrProp, targetFieldOrProp, builder);
-        }
+            targetFieldOrProp.Value = meta.Cast(sourceFieldOrProp.Type, 
+              sourceFieldOrProp.Value is not null ?
+              sourceFieldOrProp.Value?.Clone() :
+              null
+            );
+        else if (sourceFieldOrProp.Type
+            .Is(SpecialType.IEnumerable_T, ConversionKind.TypeDefinition)
+        )
+          HandleIEnumerable(sourceFieldOrProp, targetFieldOrProp);
         else
-        {
-            targetFieldOrProp.Value = sourceFieldOrProp.Value;
-        }
+          targetFieldOrProp.Value = sourceFieldOrProp.Value;
     }
     return memento;
 }
 ```, caption: [`CreateMementoImpl` method template code snippet]
 )<memento_create_implmethod>
 
+We once again receive `relevantMembers` and `introducedFieldsOnMemento` as compile-time variables to our template method, which this time is a generic method taking `TMementoType` as a type parameter with the constraint that this type must implement `IMemento` and the `new()` constraint, which demands that the type must have a public parameterless constructor.
+
+We then instantiate a new instance of this type in line 7 and assign it to a run-time variable, which is eventually returned in line 38. After collecting our `IEnumerable`s into lists, we again iterate over the relevant members of our originator type, finding the counterpart field in our memento type (once more, in a compile-time loop) and getting it's "value version" from `.With(memento)`. We now call a compile-time if clause, checking whether our field or property type meets various criteria. Depending on which criteria are met, the expression inside that if block is the expression that will end up in our run-time code:
+- If the type is *not* a reference type (@memento_create_implmethod_value), this means it *must be* a value type, the value of which we can simply assign to our memento in order copy it @dotnetdocs[Value types]. This handles most built-in primitive types for us, such as `int`, `float` or `bool`, but not the reference types `object`, `string` and `dynamic` and all types that derive from those#footnote[If we want to be pedantic about it, technically all value types also derive from `object`@dotnetdocs[8.2.3 The object type on page 8 Types in the C\# language specification] as they can be cast to the reference type `object`, but doing so (or casting them into any interface type for that matter) requires boxing them on the heap @dotnetdocs[Boxing and unboxing], as the primitive types such as `int` crucially *aren't* reference types themselves.] @dotnetdocs[Built-in types].
+- Otherwise, if the type is `string` (or a type that derives from it, @memento_create_implmethod_string), we can also simply assign the reference to it to our memento, because by language definition strings must be immutable in C\# @dotnetdocs[Strings and string literals].
+- Otherwise, if the type implements `ICloneable` (@memento_create_implmethod_cloneable), we can use the `.Clone()` method this interface exposes to create a clone of the object @dotnetdocs[ICloneable Interface]. Because the type in question could be potentially nullable, we have to also do a null check before calling the method in order to avoid a NulLReferenceException. Because the `ICloneable` interface does not prescribe whether the clone operation must be a shallow or deep copy of the object @dotnetdocs[ICloneable Interface], the user of our memento attribute themselves must be aware of this circumstance and determine if the behaviour of a given `.Clone()` implementation is what they intend to do.
+- Otherwise, if the type implements the generic `IEnumerable<T>` (@memento_create_implmethod_enumerable), we call another templated method called `HandleIEnumerable`, the implementation of which has been omitted for sake of brevity from @memento_create_implmethod. This method essentially checks what kind of `IEnumerable<T>` the type is and either clones it using the correct base collection conversion method (such as `ToDictionary` for `Dictionary<T>`) or assigns the reference if the collection is immutable/read-only. As a fallback, any other unrecognized collection types are also simply assigned by reference to the memento object.
+- Otherwise, we've exhausted our heuristics (@memento_create_implmethod_default) and don't have enough information about the type to make an informed decision of how to copy it, so we simply assign it to the memento by reference as a default fallback. This is the case that has previously provoked a warning in @memento_strict_diagnostics.
+
+Finally, these template methods we've just defined must be added to our target via a call to `builder.Advice.IntroduceMethod` in `BuildAspect` including all the relevant arguments, but these calls will again be omitted for the sake of brevity.
+
+It's also worth noting that we've opted for the option of assigning the fields of the memento object in the `CreateMemento()` method as outlined in @memento_analysis and more specifically @propertysetter, rather than a copy constructor. This decision was made purely because it seemed simpler to implement it this way at first and the decision stuck until the end. One could have just as easily moved the logic of the `CreateMemento()` method into, say, a separate aspect class which the memento type is marked with, and generate it as a quasi copy constructor there.
 
 === CreateHookAttribute and RestoreHookAttribute <createandrestorehookimpl>
+Because methods marked with `CreateHookAttribute` and `RestoreHookAttribute` both operate on data of our nested memento type, they share the same definition for their `BuildEligibility` method, which can be seen in @createandrestore_eligibility. We check that the type declaring the method has the `MementoAttribute`, the method has a return type of `void`, has exactly one parameter with the type of our nested memento type and that the method is actually implemented and callable and therefore not abstract.
+
+#figure(
+  ```cs
+public override void BuildEligibility(IEligibilityBuilder<IMethod> builder)
+{
+    base.BuildEligibility(builder);
+    builder.DeclaringType().MustHaveAspectOfType(typeof(MementoAttribute));
+    builder.ReturnType()
+      .MustBe(typeof(void), ConversionKind.TypeDefinition);
+    builder.HasExactlyOneParameterOfTypeNestedMemento();
+    builder.MustNotBeAbstract();
+}
+  ```, caption: [`BuildEligibility` method for `MementoCreateHookAttribute` and `MementoRestoreHookAttribute` code snippet]
+)<createandrestore_eligibility>
+
+#codly(
+  highlights: 
+  (
+    ct(15),
+    ct(16, start: 38, end: 50),
+    ct(18, start: 19),
+    ct(19, start: 5),
+  )
+)
+#figure(
+```cs
+public override void BuildAspect(IAspectBuilder<IMethod> builder)
+{
+    base.BuildAspect(builder);
+    var createMementoMethod = 
+      builder.Target.DeclaringType
+        .Methods
+        .FirstOrDefault(method => method.Name == "CreateMemento");
+    if (createMementoMethod == null)
+        return;
+    builder.Advice
+      .Override(createMementoMethod, nameof(CreateMementoTemplate),
+        args: new { target = builder.Target, }
+      );
+}
+
+[Template]
+public dynamic CreateMementoTemplate(IMethod target)
+{
+    var memento = meta.Proceed();
+    target.Invoke(memento);
+    return memento!;
+}
+```, caption: [`MementoCreateHookAttribute` `BuildAspect` and template methods code snippet]
+)<createhook_buildaspect_template>
+
+In @createhook_buildaspect_template we see the `BuildAspect` implementation for `MementoCreateHookAttribute`, which is quite simple. We first look for the `CreateMemento` method on the containing type of our target method and, given we were able to find it, call `builder.Advice.Override` on it with our `CreateMementoTemplate`, which takes in a reference to the target of this attribute declaration. Because we passed the reference to the original `CreateMemento()` method as the first argument to the override call, this means that the `meta.Proceed()` call in our template is converted to a run-time call to `CreateMemento()`, the result of which we save into a `memento` variable. We then call `target.Invoke(memento)`, which is converted to a call to the hook method, before finally returning the memento. Note that the `dynamic` return type of this template is a syntax limitation of template methods and is replaced by Metalama with the actual return type of `meta.Proceed()`, which as discussed is `CreateMemento()`, and therefore the return type is `IMemento`.
+
+The implementation of `MementoRestoreHookAttribute` is analogous to the implementation of `MementoCreateHookAttribute` so it won't be shown here; the only relevant differences between the two is that we of course look for a method named `RestoreMemento` instead of `CreateMemento` in `BuildAspect` and we call a different template which gets it's memento variable from the method parameter of said `RestoreMemento` before passing it to the target method.
 
 
-
+== Example application of pattern
 == Technical limitations <memento_tech_limitations>
-== Example application of pattern with and without aspects
 == Impact and consequences
 
 #pagebreak(weak:true)
