@@ -28,6 +28,10 @@
   //make raw text/code figures breakable
   #show figure.where(kind: raw): set block(breakable: true)
 
+  //indent enums
+  #set enum(indent: 1em)
+  #show enum: set block(above: 1em, below: 1em)
+
   //Per-section-numbering ist in typst aktuell (04/24) noch nicht supported und ist auf der roadmap. D.h. die nummerierung ist 1, 2, 3 statt 1.1, 1.2, 2.1
   //Man kann das mit dem numbering-parameter manuell überschreiben, ist aber nicht ganz sinn der sache
   #set bibliography(style: "Literatur/din-1505-2-alphanumeric.csl")
