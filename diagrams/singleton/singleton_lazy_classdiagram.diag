@@ -1,0 +1,16 @@
+@startuml singleton_lazy_classdiagram
+
+class Singleton {
+    - {static} Lazy<Singleton> instance;
+    + {static} Singleton Instance => instance.Value
+    + {static} int SomeData { get; set; }
+    + {static} Singleton()
+    - Singleton()
+}
+
+note left of Singleton::"Singleton()"
+_instance = new Lazy<Singleton>(() 
+  => new Singleton())
+end note
+
+@enduml
