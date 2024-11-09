@@ -1,5 +1,6 @@
-= Metaprogramming frameworks
-Wir schreiben C\#, kurz erklären warum
+= Metaprogramming
+== Aspect-Oriented Programming
+
 
 == Suitable .NET ecosystem frameworks
 

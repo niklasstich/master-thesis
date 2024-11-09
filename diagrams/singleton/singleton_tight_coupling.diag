@@ -1,0 +1,17 @@
+@startuml singleton_tight_coupling
+class Provider {
+    - {static} Lazy<Provider> instance;
+    + {static} Provider Instance => instance.Value
+    + int SomeData { get; set; }
+    + {static} Provider()
+    - Provider()
+}
+class Consumer 
+{
+    + Consumer()
+    - Provider _dependency;
+    + int GetSomeData(int factor) => _dependency.SomeData * factor;
+}
+
+Consumer --> Provider
+@enduml

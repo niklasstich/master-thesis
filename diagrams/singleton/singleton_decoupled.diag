@@ -1,0 +1,20 @@
+@startuml singleton_decoupled
+class Provider {
+    + int SomeData { get; set; }
+    + Provider()
+}
+
+interface IProvider {
+    + int SomeData { get; set; }
+}
+
+class Consumer 
+{
+    + Consumer(IProvider)
+    - IProvider _dependency;
+    + int GetSomeData(int factor) => _dependency.SomeData * factor;
+}
+
+Consumer --> IProvider
+Provider ..|> IProvider
+@enduml
