@@ -7,3 +7,5 @@
 == Technical details
 === Compilation process
 === Limitations
+
+#pagebreak(weak: true)

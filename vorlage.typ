@@ -11,7 +11,7 @@
 
 #include "chapters/toc.typ"
 
-#include "chapters/introduction.typ"
+// #include "chapters/introduction.typ"
 #include "chapters/approach.typ"
 #include "chapters/metalama.typ"
 #include "chapters/patterns.typ"
