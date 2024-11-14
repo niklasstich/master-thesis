@@ -22,21 +22,24 @@ IDeclaration <.. IAspect
 IDeclaration <.. IEligible
 IEligible <|-- IAspect : extends with T=T
 
-
+together {
 interface Metalama::INamedType 
 interface Metalama::IMethod 
+}
 
+IDeclaration <|--- INamedType
+IDeclaration <|--- IMethod
+
+together {
 abstract class Metalama::TypeAspect {
-
+}
+abstract class Metalama::MethodAspect {
+}
 }
 
 Aspect <|-- TypeAspect
 IAspect <|.. TypeAspect : implements with T=INamedType 
 INamedType <.. TypeAspect
-
-abstract class Metalama::MethodAspect {
-
-}
 
 Aspect <|-- MethodAspect
 IAspect <|.. MethodAspect : implements with T=IMethod 
