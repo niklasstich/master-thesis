@@ -1,4 +1,4 @@
-= Introduction
+= Introduction<intro>
 == A note on notation
 This paper uses PlantUML#footnote([https://plantuml.com/]) for generating the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]).
 
@@ -133,10 +133,10 @@ Contra: Kommerzielles Produkt, kann noch nicht alles (z.B. nested types generier
 
 Metalama is a commercial C\# metaprogramming framework, the main selling point of which is the ability to implement aspects, like they were introduced in @aop, that let us generate repetitive boilderplate code that we could not possibly abstract out of our classes otherwise@metadocs[Video tutorials - 0. A short introduction]. It also supports automatically applying these aspects across our codebases via their programatic Fabrics API which can also be used for validation of code. Metalama is being developed by SharpCrafters, the makers of PostSharp, their previous aspect-oriented metaprogramming framework that is based on a post-compiler@metadocs[Migrating from PostSharp - Why migrate] manipulating Common Intermediate Language (commonly referred to as MSIL or CIL), the managed intermediate code that the C\# compiler produces@dotnetdocs[What is "managed code"?] both at compile-time and run-time. Compared to PostSharp, Metalama code generation is fully compile-time meaning it has no runtime overhead and the code that is added by aspects can be seen and accessed from user code@metadocs[Migrating from PostSharp - Why migrate], which is why the developers recommend PostSharp users eventually migrate to the more modern and well-maintained Metalama, if possible@metadocs[Migrating from PostSharp - Why migrate & When migrate].
 
-As mentioned, at the core of Metalama functionality are aspects, standard C\# classes that implement special Metalama interfaces that are picked up during the compilation process. The transformations that these aspects execute on the code are itself based on a Metalama fork of the Roslyn compiler#footnote([https://github.com/postsharp/Metalama.Compiler]) that introduces the concept of source transformers, which, in addition to the features of source generators introduced in @source_generators, can also modify existing source code. In @metalama_classdiag, we can see the basic type structure of Metalama aspects. Any type that implements `IAspect<T>`, where `T` is an `IDeclaration` such as `IMethod`, `INamedType` or other types of code declarations, will have it's `BuildEligibility` and `BuildAspect` methods executed during compile-time and have access to compiler infomation similar to what was described in @source_generators. The `BuildEligibilty` method allows us to check whether or not the aspect that is being executed is actually applicable to the target declaration. If the eligibility is true, the `BuildAspect` method is executed in which we can do our actual aspect logic such as introducing new members, types or methods, implementing interfaces, changing existing code and much more. 
+As mentioned, at the core of Metalama functionality are aspects, standard C\# classes that implement special Metalama interfaces that are picked up during the compilation process. The transformations that these aspects execute on the code are itself based on a Metalama fork of the Roslyn compiler#footnote([https://github.com/postsharp/Metalama.Compiler]) that introduces the concept of source transformers, which, in addition to the features of source generators introduced in @source_generators, can also modify existing source code. In @metalama_classdiag, we can see the basic type structure of Metalama aspects. Any type that implements `IAspect<T>`, where `T` is an `IDeclaration` such as `IMethod`, `INamedType` or other types of code declarations, will have it's `BuildEligibility` and `BuildAspect` methods executed during compile-time and have access to compiler infomation similar to what was described in @source_generators. The abstract types `MethodAspect` and `TypeAspect` The `BuildEligibilty` method allows us to check whether or not the aspect that is being executed is actually applicable to the target declaration. If the eligibility is true, the `BuildAspect` method is executed in which we can do our actual aspect logic such as introducing new members, types or methods, implementing interfaces, changing existing code and much more. 
 
 #figure(
-    image("../diagrams/metalama_stereotypes.svg"), caption: [Class diagram showing type relations in Metalama and stereotype convention used in this paper]
+    image("../diagrams/metalama_stereotypes.svg"), caption: [Class diagram showing type relations in Metalama and stereotype convention used in this paper. Diagram is non-exhaustive and does not show all members on all types.]
 )<metalama_classdiag>
 Fortunately, as aspects are a much higher-level API than the source generator API, it is much simpler to find out revelant information about our targets as there is already a lot of information prepared for us via convenience methods of the Metalama framework. As an example, the code for finding out whether a type has an attribute applied to it is depicted in @metalama_aspect_example (compare with the source generator example from @source_generator_hasmemento).
 
@@ -149,8 +149,33 @@ public static bool HasAttribute<TAttribute>(this INamedType type) where TAttribu
 ```
 )<metalama_aspect_example>
 
-To add new code, Metalama offers a feature called "T\# templates", which allow us to write normal C\# code with added APIs and functionality provided by the T\# dialect@metadocs[Writing T\# templates]. We can use these templates to add a variety of declarations, such as methods, property getters and setters or field initializers. 
+To add new code, Metalama offers a feature called "T\# templates", which allow us to write normal C\# code with added APIs and functionality provided by the T\# dialect@metadocs[Writing T\# templates]. We can use these templates to add a variety of declarations, such as methods, property getters and setters or field initializers. In @metalama_logging_example, we see an example of such a template. The aspect implements `OverrideMethodAspect` which defines a method `OverrideMethod()` which is used to override the implementation of the target method this aspect is used on. This `OverrideMethod()` is itself interpreted as a template method, and as such, we can use the `meta` keyword to do things like get the name of the target method or executing it via `meta.Proceed()`. Templates will be explained more thoroughly when necessary in the following sections, but for now it is important to understand that these templates and the ability to edit existing code makes Metalama much more powerful than T4 templates or source generators for the metaprogramming task at hand.
 
-TODO: metalama template example
+#figure(
+```cs
+public class LogAttribute : OverrideMethodAspect
+{
+    public override dynamic? OverrideMethod()
+    {
+        Console.WriteLine($"{meta.Target.Method} started.");
+
+        try
+        {
+            var result = meta.Proceed();
+            Console.WriteLine($"{meta.Target.Method} succeeded.");
+            return result;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"{meta.Target.Method} failed: {e.Message}.");
+            throw;
+        }
+    }
+}
+```, caption: [Example implementation of console logging using Metalama, taken from @metadocs[Commented examples - Logging - Step 2. Adding the method name]]
+)<metalama_logging_example>
+
+
+
 
 #pagebreak(weak: true)

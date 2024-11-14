@@ -4,6 +4,8 @@
 #include "chapters/title.typ"
 #pagebreak(weak: true)
 
+#include "chapters/acknowledgements.typ"
+
 #include "chapters/abstract.typ"
 
 #set page(numbering: "1")
