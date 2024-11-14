@@ -1,7 +1,7 @@
 #import "../../codly/codly.typ": * 
 #import "../../config.typ": ct
 
-= Singleton
+= Singleton<singleton>
 
 == Analysis of pattern<singleton_analysis>
 The singleton pattern is a creational pattern which can be used to "[e]nsure a class only has one instance, and provide a global point of access to it"@Gamma1994[p. 127]. At any point of a programs lifecycle, if a class implements the singleton pattern, there must, at most, be one instance of said class. To ensure that this is the case, we make the singleton class itself responsible for managing it's own instance creation and object lifecycle as well as providing access to this instance@Gamma1994[p. 127] by declaring all constructors of the type as non-public and providing a public facing static operation to retrieve the instance of the type@Gamma1994[p. 129]. This static operation must check whether there is already an instance of the type stored statically inside of the type, create a new instance if not, and return the single instance@Gamma1994[p. 129 implementation].

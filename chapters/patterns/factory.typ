@@ -1,4 +1,4 @@
-= Factory
+= Factory<factory>
 
 == Analysis of pattern
 == Implementation of aspects

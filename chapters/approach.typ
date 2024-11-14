@@ -1,12 +1,29 @@
 = Introduction<intro>
 == A note on notation
-This paper uses PlantUML#footnote([https://plantuml.com/]) for generating the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]).
+This paper uses PlantUML#footnote([https://plantuml.com/]) to generate the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]).
+
+Please note that, due to space constraints, listings containing source code are sometimes formatted differently than in the source they are from, including omitting excess empty lines, class or method signature declarations and comments or breaking lines that are too long to fit on a page into multiple lines. Be assured that these modifications of the source code do not change the functionality at all.
 
 #figure(
     image("../diagrams/legend.svg"), caption: [PlantUML class diagram legend]
 )<classdiag_legend>
 == Aspect-Oriented Programming<aop>
-In 1997, Kiczales et al. first posited the concept of aspect-oriented programming (AOP) in @Kiczales1997. Specifically, they found that in modern software applications, there exist components, which are concerned with what they call "functional decomposition" of our business logic@Kiczales1997[p. 2f, p. 6f], essentially breaking apart our functional requirements into the levels of abstraction the language at hand supports and separate properties which they coined as "cross-cutting concerns", often non-functional requirements "that affect the performance or semantics of the components"@Kiczales1997[p. 6f] that span across these abstractions@Kiczales1997[p. 7], namely classes in the case of object-oriented programming (OOP) languages like C\# at hand. The solution to these cross-cutting concerns are called "aspects", and they exist, conceptually, outside of our component hierarchy@Kiczales1997[p. 7]. The problem with aspects is that, in classic OOP languages, there is no good way to abstract them out of the components or classes they span across@Kiczales1997[p. 6f]. A good example of this is logging@metadocs: Say we want to provide trace logging across our entire existing application, putting out a log message whenever we enter and exit a method on the call stack@metadocs[Commented examples - Logging]. Out of the box, there is no good way to realize this in C\# in a manner that does not affect our functional units, or in other words, classes, and as a consequence we would have to add explicit logging statements to every method in our application.
+In 1997, Kiczales et al. first posited the concept of aspect-oriented programming (AOP) in @Kiczales1997. Specifically, they found that in modern software applications, there exist components, which are concerned with what they call "functional decomposition" of our business logic@Kiczales1997[p. 2f, p. 6f], essentially breaking apart our functional requirements into the levels of abstraction the language at hand supports and separate properties which they coined as "cross-cutting concerns", often non-functional requirements "that affect the performance or semantics of the components"@Kiczales1997[p. 6f] that span across these abstractions@Kiczales1997[p. 7], namely classes in the case of object-oriented programming (OOP) languages like C\# at hand. The solution to these cross-cutting concerns are called "aspects", and they exist, conceptually, outside of our component hierarchy@Kiczales1997[p. 7]. The problem with aspects is that, in classic OOP languages, there is no good way to abstract them out of the components or classes they span across@Kiczales1997[p. 6f]. A good example of this is logging@metadocs: Say we want to provide trace logging across our entire existing application, putting out a log message whenever we enter and exit a method on the call stack@metadocs[Commented examples - Logging]. Out of the box, there is no good way to realize this in C\# in a manner that does not affect our functional units, or in other words, classes, and as a consequence we would have to add explicit logging statements to every method in our application, like in @logging_classic_example.
+
+#figure(
+```cs
+public class Math 
+{
+    public int Add(int a, int b) 
+    {
+        Console.WriteLine("Entering method Add");
+        var result = a + b;
+        Console.WriteLine("Exiting method Add");
+        return result;
+    }
+}
+```, caption: [Very simple example of logging mixed in with business logic. The logging code in the example cannot be well abstracted out of class `Math` by means of Object-Oriented Programming.]
+)<logging_classic_example>
 
 Metaprogramming can help us solve this issue in a more implementation-agnostic way. There are many different approaches in the metaprogramming space, such as the "Metaobject Protocol"#footnote([An example of a metaobject protocol language is Common Lisp or more specifically the Common Lisp Object System, an extension of Common Lisp that constitutes "a high-level object-oriented language"@Kiczales1999[p. 2], the design of which the authors of @Kiczales1999 have been involved in.]), described in @Kiczales1999, in which the basic structural building blocks of a language are themselves represented by first-class objects of the language that can be manipulated through writing code in the language@Kiczales1999[p. 1, p. 137]. This is a very powerful approach, because it allows us to manipulate how the language itself is implemented during run-time@Kiczales1999[p. 1]. On the other hand, there are more structured approaches like the "aspect weaver", which focuses on solving the implementation of aspects from the previous definition of AOP. Aspect weavers combine both the "component language", the programming language in which we write our functional components (e.g. classes), and an "aspect language", in which we write our aspects which, when woven with the aspect weaver (a compiler of sorts), manipulate our input components to generate our final program@Kiczales1997[p. 9]. There are also approaches that do this aspect weaving during run-time, but these will not be the focus of this work.
 
@@ -94,7 +111,7 @@ public static partial class ConstStrings
 public const string {nameAndContent.name} = ""{nameAndContent.content}"";
 }}");
 });
-```, caption: [Example source generator snippet from @roslyndocs[incremental-generators.md], formatting changed]
+```, caption: [Example source generator snippet taken from @roslyndocs[incremental-generators.md], formatting changed]
 )<source_generator_example>
 
 Because we define source generators as plain C\# classes that act upon some input data in a standard C\# projects, this is a very powerful way of metaprogramming out of the box. There are however some major limitations that might dissuade one from using source generators for a target problem, namely that a project defining them must target the `netstandard2.0` target moniker#footnote([It is technically possible to target the higher version `netstandard2.1` instead, which supports more APIs and features, but this has some serious drawbacks, see https://github.com/dotnet/roslyn/issues/47087.]) and they can only perform some limited input/output operations via the source generator API. Most importantly however, source generators are intended *only* for adding new content to a project or solution and as such, it is impossible to change any existing source code@roslyndocs[incremental-generators.cookbook.md]. In the Rosyln documentation, the developers make this even more clear by explicitly bringing up our logging example from @aop as an anti-pattern: "There are many post-processing tasks that users perform on their assemblies today, which here we define broadly as 'code rewriting'. These include, but are not limited to: [...] Logging injection [...]"@roslyndocs[incremental-generators.cookbook.md]. This means that source generators, just like T4 templates, are not suitable for solving the logging cross-cutting concern introduced in @aop.
@@ -146,7 +163,7 @@ Fortunately, as aspects are a much higher-level API than the source generator AP
 public static bool HasAttribute<TAttribute>(this INamedType type) where TAttribute : Attribute =>
     type.Attributes.Any(attr =>
         attr.Type.FullName == typeof(TAttribute).FullName);
-```
+```, caption: [Generic Metalama code that checks whether a type is marked with any arbitrary attribute]
 )<metalama_aspect_example>
 
 To add new code, Metalama offers a feature called "T\# templates", which allow us to write normal C\# code with added APIs and functionality provided by the T\# dialect@metadocs[Writing T\# templates]. We can use these templates to add a variety of declarations, such as methods, property getters and setters or field initializers. In @metalama_logging_example, we see an example of such a template. The aspect implements `OverrideMethodAspect` which defines a method `OverrideMethod()` which is used to override the implementation of the target method this aspect is used on. This `OverrideMethod()` is itself interpreted as a template method, and as such, we can use the `meta` keyword to do things like get the name of the target method or executing it via `meta.Proceed()`. Templates will be explained more thoroughly when necessary in the following sections, but for now it is important to understand that these templates and the ability to edit existing code makes Metalama much more powerful than T4 templates or source generators for the metaprogramming task at hand.
@@ -175,7 +192,18 @@ public class LogAttribute : OverrideMethodAspect
 ```, caption: [Example implementation of console logging using Metalama, taken from @metadocs[Commented examples - Logging - Step 2. Adding the method name]]
 )<metalama_logging_example>
 
+== Moyou
+While working on this topic, the Metalama aspect library project Moyou (japanese #text(font: "Noto Sans JP")[模様], transliterated as moyō, meaning pattern or design) was created by the author of this thesis to house the implementations of all the patterns presented in this work. The repository of the project is freely accessible at [https://github.com/niklasstich/moyou].
 
+The Moyou project is largely divided into 5 namespaces: 
+- `Moyou.Aspects`, where the actual implementations presented in Sections #ref(<memento>, supplement: none), #ref(<singleton>, supplement: none), #ref(<unsaved_changes>, supplement: none) and #ref(<factory>, supplement: none) can be found,
+- `Moyou.Diagnostics`, which holds the information required in diagnostics emitted by the aspect implementations,
+- `Moyou.Extensions`, a collection of useful C\# extension methods@dotnetdocs[Extension Methods (C\# Programming Guide)] used across various aspects,
+- `Moyou.Test`, a library of text-based snapshot tests that verify that, for a given input, our aspects generate the correct output code,
+- `Moyou.UnitTest`, another test library which applies aspects to actual classes and tests that the generated code functions as expected.
 
+Regarding `Moyou.Test`, special care was taken to consider as many likely scenarios of kinds input to the aspects as possible, including input that results in warning or error diagnostics by the aspects (such as e.g. marking an abstract class as a singleton). The benefits of splitting testing across both compile-time and run-time code of aspects will be more thoroughly explained after the first aspect is introduced in @memento_consequences.
+
+Whenever source code from the Moyou project is shown as a listing anywhere in this paper, a footnote with a permalink to the file in the GitHub repository will be provided.
 
 #pagebreak(weak: true)
