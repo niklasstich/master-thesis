@@ -128,13 +128,13 @@ else GenerateNonLazyImplementation(builder);
 === Lazy implementation<singleton_lazy_implementation>
 For the lazy implementation, we introduce a static field called `_instance` to the target type, which is of type `Lazy<TTarget>` with `TTarget` being the target type the aspect is applied to. To get a reference to this `Lazy<TTarget>` type, we must first use reflection tricks to get around syntax limitations of the C\# language as can be seen in @singleton_lazy_typetrick, because we can't simply type an expression like `Lazy<TTarget>` in our current context.
 
-To initialize this field, we add an initializer to the target, like explained in @singleton_analysis. Because we specify that we want the `InitializerKind.BeforeTypeConstructor`, Metalama will make this initializer a static initializer, meaning it will run before the static constructor of the type (also sometimes referred to as the type constructor). We calling the `AddInitializer` method, we pass in our `CreateLazyInstance` template as an implementation for the initializer.
+To initialize this field, we add an initializer to the target. This name is misleading however, as unlike explained in @singleton_analysis, this will not generate a static initializer on the field, but instead add a line initializing the field in one of the constructors#footnote([A static constructor is automatically introduced if none exists yet.]), see @singleton_example for examples. Because we specify that we want the `InitializerKind.BeforeTypeConstructor`, Metalama will make this initialization in the static constructor of the type (also sometimes referred to as the type constructor), if we instead had specified `InitializerKind.BeforeTypeConstructor`, it would be initialized in the instance constructor(s) of the type. When calling the `AddInitializer` method, we pass in our `CreateLazyInstance` template as an implementation for the initializer.
 
 Finally, we must introduce a property from which our consumers can get the instance of the singleton. To do this, we call the advice factory on our builder once again, with `IntroduceProperty` this time, to which we pass our `GetLazyInstance` template and no template for the setter (`null` argument after `nameof(GetLazyInstance)`). Once again, we have to specify that we want this property to be static and that we want it to be public in this case.
 
 In the templates for this implementation, the generic type parameter T is a compile-time value, but during generation of the run-time code the method becomes non-generic, meaning the parameter T is removed and all occurrences of T, such as in the return types, are replaced with the type that was passed in for that parameter instead. Furthermore, the `meta.ThisType` compile-time expressions are replaced with run-time expressions referring to the target type of the aspect, in contrast to `meta.This`, which would refer to the current instance of the target type, which would not be applicable because we are in a static syntax in this template. Because templates themselves however are agnostic to whether they are used in a static or non-static context, we must specify this when we apply the template in our initializer or property advice definitions.
 
-In the `CreateLazyInstance` template in @singleton_lazy_new_constraint, we once again see that the `new()` constraint is being used. As previously explained, this constraint ensures that the type T must have a parameterless public constructor. However, in this instance, this is not actually what we want, as we are making a singleton implementation, and only the singleton itself should be able to make an instance of itself. Luckily, Metalama simply ignores this constraint completely when generating code from our templates. We must however still define this constraint here, because otherwise the semantics of C\# generic type parameters will not allow us to call the `new T()` constructor inside of our generic method code, even though Metalama itself does not care about it.
+In the `CreateLazyInstance` template in @singleton_lazy_new_constraint, we once again see that the `new()` constraint is being used. As previously explained, this constraint ensures that the type T must have a parameterless public constructor. However, in this instance, this is not actually what we want, as we are making a singleton implementation, and only the singleton itself should be able to make an instance of itself. Luckily, Metalama simply ignores this constraint completely when generating code from our templates, that is because internally Metalama turns this generic method into a non-generic method during compilation and the `new()` constraint is ignored in this compilation step#footnote([Information sourced from private communication with Metalama developer Daniel Balaš via the Metalama Slack channel, dated Nov. 10th 2024]). We must however still define this constraint here, because otherwise the semantics of C\# generic type parameters will not allow us to call the `new T()` constructor inside of our generic method code, even though Metalama itself does not care about the constraint.
 #codly(
   highlights: (
     (line: 3, start: 5, tag: "[1]", label: <singleton_lazy_typetrick>),
@@ -183,11 +183,79 @@ private static void CreateLazyInstance<[CompileTime] T>() where T : new()
 )<singleton_code_lazy>
 === Non-lazy implementation
 The non-lazy implementation is essentially the same as the lazy implementation from @singleton_lazy_implementation, with the key differences being that we use the target type directly instead of the lazy generic type when we define the `_instance` field and it's initializer, and dropping the `.Value` access as we've dropped the indirection. Otherwise, the steps are exactly the same and the final generated code looks the same to our consumers interface-wise.
-== Example application of pattern
-TODO: generate diff on windows
+== Example application of pattern<singleton_example>
+In @singleton_example_lazy, we find the implementation that our singleton aspect generates in lazy mode. Note that in the declaration of the `[Singleton]` attribute, we do not have to specify the `Lazy` property as it is set to true by default. In @singleton_example_nonlazy, a similar non-lazy example is given. Note that in both examples, the interface of `Instance` is the same and only how we store the instance field differs; therefore users of our singleton do not need to concern themselves about how the singleton is instantiated.
+#figure(
+```diff
+ using Moyou.Aspects.Singleton;
+ 
+ namespace Moyou.UnitTest.Singleton;
+ 
+ [Singleton]
+ public partial class SingletonDummy
+ {
+     public static bool ConstructorCalled { get; private set; }
+     private SingletonDummy()
+     {
+         ConstructorCalled = true;
+     }
++
++
++    private static Lazy<SingletonDummy> _instance;
++
++    static SingletonDummy()
++    {
++        SingletonDummy._instance = new Lazy<SingletonDummy>(() => new SingletonDummy());
++    }
++
++    public static SingletonDummy Instance
++    {
++        get
++        {
++            return _instance.Value;
++        }
++    }
+ }
+```, caption: [Example of singleton aspect implementation in Lazy mode]
+)<singleton_example_lazy>
+
+#figure(
+```diff
+ using Moyou.Aspects.Singleton;
+ 
+ namespace Moyou.UnitTest.Singleton;
+ 
+ [Singleton(Lazy = false)]
+ public partial class SingletonNonLazyDummy
+ {
+     public static bool ConstructorCalled { get; private set; }
+ 
+     private SingletonNonLazyDummy()
+     {
+         ConstructorCalled = true;
+     }
++
++
++    private static SingletonNonLazyDummy _instance;
++
++    static SingletonNonLazyDummy()
++    {
++        SingletonNonLazyDummy._instance = new SingletonNonLazyDummy();
++    }
++
++    public static SingletonNonLazyDummy Instance
++    {
++        get
++        {
++            return _instance;
++        }
++    }
+ }
+```, caption: [Example of non-lazy singleton implementation via the aspect]
+)<singleton_example_nonlazy>
 == Impact and consequences of aspects<singleton_consequences>
 Using our singleton aspect to implement the singleton functionality for us does not give us quite as many advantages as the memento aspect did, because singleton is a pretty static pattern that does not change much even when the type we implement singleton itself changes significantly. That does however not mean that using metaprogramming to extract the singleton implementation from our singleton types itself has no merit. The arguments posited in @memento_consequences, except for the argument about the changing implementation, still stand. By removing the singleton implementation from the explicit code of the type we have made the type itself easier to understand and maintain, fulfilling our adapted defintion of the SRP. We've also again reduced code duplication by not having to copy-paste the same singleton implementation every time, instead relying on one singleton aspect implementation that can be tested in advance, reducing run-time code test requirements and that can be changed once centrally to change the implementation of all our singletons automatically.
 
-It can therefore be concluded that even though the singleton initally appears very simple to understand and implement, there is still advantages to be had from automating it, even though it is "only" a creational pattern and does not carry much logic itself. This is because the singleton pattern solves a problem that fits our definition of cross-cutting concerns from TODO:REFERENCE very well: the logic of the singleton pattern is concerned with the lifetime of objects of our target type rather than the actual functional or business logic of the types itself, compare with @Kiczales1997[definition on p. 7]. If we follow the theory of aspect-oriented programming@Kiczales1997, it is only natural that we'd want to pull this concern out of our components.
+It can therefore be concluded that even though the singleton initally appears very simple to understand and implement, there are still advantages to be had from automating it, even though it is "only" a creational pattern and does not carry much logic itself. This is because the singleton pattern solves a problem that fits our definition of cross-cutting concerns from @aop very well: the logic of the singleton pattern is concerned with the lifetime of objects of our target types rather than the actual functional business logic of the types itself, compare with @Kiczales1997[definition on p. 7]. If we follow the theory of aspect-oriented programming@Kiczales1997, it is only natural that we'd want to pull this concern out of our components.
 
 #pagebreak(weak: true)
