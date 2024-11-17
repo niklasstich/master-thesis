@@ -1,0 +1,9 @@
+@startuml unsaved_changes_aspects
+interface IUnsavedChanges
+{
+    bool UnsavedChanges { get; }
+    void ResetUnsavedChanges();
+}
+
+
+@enduml

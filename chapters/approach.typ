@@ -1,12 +1,4 @@
 = Introduction<intro>
-== A note on notation
-This paper uses PlantUML#footnote([https://plantuml.com/]) to generate the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]).
-
-Please note that, due to space constraints, listings containing source code are sometimes formatted differently than in the source they are from, including omitting excess empty lines, class or method signature declarations and comments or breaking lines that are too long to fit on a page into multiple lines. Be assured that these modifications of the source code do not change the functionality at all.
-
-#figure(
-    image("../diagrams/legend.svg"), caption: [PlantUML class diagram legend]
-)<classdiag_legend>
 == Aspect-Oriented Programming<aop>
 In 1997, Kiczales et al. first posited the concept of aspect-oriented programming (AOP) in @Kiczales1997. Specifically, they found that in modern software applications, there exist components, which are concerned with what they call "functional decomposition" of our business logic@Kiczales1997[p. 2f, p. 6f], essentially breaking apart our functional requirements into the levels of abstraction the language at hand supports and separate properties which they coined as "cross-cutting concerns", often non-functional requirements "that affect the performance or semantics of the components"@Kiczales1997[p. 6f] that span across these abstractions@Kiczales1997[p. 7], namely classes in the case of object-oriented programming (OOP) languages like C\# at hand. The solution to these cross-cutting concerns are called "aspects", and they exist, conceptually, outside of our component hierarchy@Kiczales1997[p. 7]. The problem with aspects is that, in classic OOP languages, there is no good way to abstract them out of the components or classes they span across@Kiczales1997[p. 6f]. A good example of this is logging@metadocs: Say we want to provide trace logging across our entire existing application, putting out a log message whenever we enter and exit a method on the call stack@metadocs[Commented examples - Logging]. Out of the box, there is no good way to realize this in C\# in a manner that does not affect our functional units, or in other words, classes, and as a consequence we would have to add explicit logging statements to every method in our application, like in @logging_classic_example.
 
@@ -153,7 +145,7 @@ Metalama is a commercial C\# metaprogramming framework, the main selling point o
 As mentioned, at the core of Metalama functionality are aspects, standard C\# classes that implement special Metalama interfaces that are picked up during the compilation process. The transformations that these aspects execute on the code are itself based on a Metalama fork of the Roslyn compiler#footnote([https://github.com/postsharp/Metalama.Compiler]) that introduces the concept of source transformers, which, in addition to the features of source generators introduced in @source_generators, can also modify existing source code. In @metalama_classdiag, we can see the basic type structure of Metalama aspects. Any type that implements `IAspect<T>`, where `T` is an `IDeclaration` such as `IMethod`, `INamedType` or other types of code declarations, will have it's `BuildEligibility` and `BuildAspect` methods executed during compile-time and have access to compiler infomation similar to what was described in @source_generators. The abstract types `MethodAspect` and `TypeAspect` The `BuildEligibilty` method allows us to check whether or not the aspect that is being executed is actually applicable to the target declaration. If the eligibility is true, the `BuildAspect` method is executed in which we can do our actual aspect logic such as introducing new members, types or methods, implementing interfaces, changing existing code and much more. 
 
 #figure(
-    image("../diagrams/metalama_stereotypes.svg"), caption: [Class diagram showing type relations in Metalama and stereotype convention used in this paper. Diagram is non-exhaustive and does not show all members on all types.]
+    image("../diagrams/metalama_stereotypes.svg"), caption: [Class diagram showing type relations in Metalama and aspect stereotype convention used in this paper (the abstract classes the aspects inherit from will not be repeated every time). Diagram is non-exhaustive and does not show all members on all types.]
 )<metalama_classdiag>
 Fortunately, as aspects are a much higher-level API than the source generator API, it is much simpler to find out revelant information about our targets as there is already a lot of information prepared for us via convenience methods of the Metalama framework. As an example, the code for finding out whether a type has an attribute applied to it is depicted in @metalama_aspect_example (compare with the source generator example from @source_generator_hasmemento).
 
@@ -193,7 +185,7 @@ public class LogAttribute : OverrideMethodAspect
 )<metalama_logging_example>
 
 == Moyou
-While working on this topic, the Metalama aspect library project Moyou (japanese #text(font: "Noto Sans JP")[模様], transliterated as moyō, meaning pattern or design) was created by the author of this thesis to house the implementations of all the patterns presented in this work. The repository of the project is freely accessible at [https://github.com/niklasstich/moyou].
+While working on this topic, the Metalama aspect library project Moyou (japanese #text(font: "Noto Sans JP")[模様], transliterated as moyō, meaning pattern or design) was created to house the implementations of all the patterns presented in this work. The repository of the project is freely accessible at [https://github.com/niklasstich/moyou].
 
 The Moyou project is largely divided into 5 namespaces: 
 - `Moyou.Aspects`, where the actual implementations presented in Sections #ref(<memento>, supplement: none), #ref(<singleton>, supplement: none), #ref(<unsaved_changes>, supplement: none) and #ref(<factory>, supplement: none) can be found,
@@ -205,5 +197,14 @@ The Moyou project is largely divided into 5 namespaces:
 Regarding `Moyou.Test`, special care was taken to consider as many likely scenarios of kinds input to the aspects as possible, including input that results in warning or error diagnostics by the aspects (such as e.g. marking an abstract class as a singleton). The benefits of splitting testing across both compile-time and run-time code of aspects will be more thoroughly explained after the first aspect is introduced in @memento_consequences.
 
 Whenever source code from the Moyou project is shown as a listing anywhere in this paper, a footnote with a permalink to the file in the GitHub repository will be provided.
+
+== A note on notation
+This paper uses PlantUML#footnote([https://plantuml.com/]) to generate the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]). In general, only members relevant to the topic at hand will be shown on types in class diagrams. Class diagrams that contain Metalama aspect types will not have their template members represented in these class diagrams as they are not actually relevant to the aspect itself but are rather applied to the target declaration of the aspect.
+
+#figure(
+    image("../diagrams/legend.svg"), caption: [PlantUML class diagram legend]
+)<classdiag_legend>
+
+Please note that, due to space constraints, listings containing source code are sometimes formatted differently than in the source they are from, including omitting excess empty lines, class or method signature declarations and comments. Lines that are too long to fit on a page will sometimes be broken into multiple lines. Be assured that these modifications of the source code do not change the functionality at all.
 
 #pagebreak(weak: true)

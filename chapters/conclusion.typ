@@ -5,4 +5,4 @@ Aspects as first-class language feature instead of retrofitted (like source gene
 
 Weitere Tools und Methoden zur Verifizierung von korrekter Verwendung von Patterns (z.B. Fabric die prueft ob singleton wirklich singleton ist)
 
-TODO: Bestehende Patternimplementierungen verbessern, z.B. incrementals memento @Gamma1994[p. 287], transactional database for memento, abstract factory for factory, use metalama.observability for for unsaved changes
+TODO: Bestehende Patternimplementierungen verbessern, z.B. incrementals memento @Gamma1994[p. 287], transactional database for memento, abstract factory for factory, use metalama.observability for for unsaved changes, onchanged for unsaved
