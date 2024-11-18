@@ -184,6 +184,8 @@ public class LogAttribute : OverrideMethodAspect
 ```, caption: [Example implementation of console logging using Metalama, taken from @metadocs[Commented examples - Logging - Step 2. Adding the method name]]
 )<metalama_logging_example>
 
+TODO: introduce fabrics
+
 == Moyou
 While working on this topic, the Metalama aspect library project Moyou (japanese #text(font: "Noto Sans JP")[模様], transliterated as moyō, meaning pattern or design) was created to house the implementations of all the patterns presented in this work. The repository of the project is freely accessible at [https://github.com/niklasstich/moyou].
 

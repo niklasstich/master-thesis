@@ -1,3 +1,6 @@
+#import "../../codly/codly.typ": * 
+#import "../../config.typ": ct
+
 = Unsaved changes<unsaved_changes>
 
 == Analysis of pattern
@@ -128,7 +131,108 @@ The usage of many different other patterns could be discussed here, for example,
 
 
 == Implementation of aspects<unsaved_changes_implementation>
-The `Moyou.Aspects.UnsavedChanges` namespace consists of only two types: an `IUnsavedChanges` interface which we will implement on our targets and an `UnsavedChangesAttribute`
+The `Moyou.Aspects.UnsavedChanges` namespace consists of only two types: an `IUnsavedChanges` interface which we will implement on our targets and an `UnsavedChangesAttribute` type aspect that handles the implementation of the pattern. These types can be found represented in @unsaved_changes_aspects.
+
+#figure(
+  image("../../diagrams/unsaved_changes/unsaved_changes_aspects.svg"),
+  caption: [Class diagram illustrating the types in `Moyou.Aspects.UnsavedChanges` and the relationships between them]
+)<unsaved_changes_aspects>
+
+This aspect only has a single requirement in its `BuildEligibility` method which is that the type must not be an interface, as these would not make any sense as a target in this context.
+
+Arriving in our `BuildAspect` method, the first thing we do is implement our `IUnsavedChanges` interface as seen in @unsaved_changes_aspects and introduce a field called `_internalUnsavedChanges` of type bool with private accessibility. We then look for all members of the type that are relevant for checking whether we have unsaved changes, meaning all types which themselves are also marked with the `[UnsavedChanges]` attribute. Similarly, we look for all members on our target, the type of which implements `IEnumerable<T>` where type `T` has the `[UnsavedChanges]` attribute applied to it. From both of these collections, we remove all fields which we can identify as backing fields (similar reasoning as in @memento_find_members, merely looking at the property is sufficient). The code so far can be found in @unsaved_changes_implementation_part1.
+
+#codly(
+  highlights: 
+  (
+    ct(38, end: 10),
+  )
+)
+#figure(
+```cs
+public override void BuildAspect(IAspectBuilder<INamedType> builder)
+{
+  base.BuildAspect(builder);
+
+  builder.ImplementInterface(typeof(IUnsavedChanges),
+    OverrideStrategy.Ignore);
+
+  builder.IntroduceField(nameof(_internalUnsavedChanges),
+    IntroductionScope.Instance, 
+    buildField:
+      fbuilder => { fbuilder.Accessibility = Accessibility.Private; }
+  );
+
+  var relevantMembers = builder.Target.AllFieldsAndProperties
+    .Where(member => 
+      member.TypeHasAttribute(typeof(UnsavedChangesAttribute))
+    )
+    .Where(member => 
+      member is not IField field || !field.IsAutoBackingField()
+    )
+    .ToList();
+
+  var relevantIEnumerableMembers = builder.Target.AllFieldsAndProperties
+    .Where(member => member.Type is INamedType ntype &&
+            !ntype.Is(SpecialType.String) &&
+            ntype.Is(typeof(IEnumerable<>), ConversionKind.TypeDefinition)
+    )
+    .Where(member => member.
+      TypeArgumentOfEnumerableHasAttribute(typeof(UnsavedChangesAttribute))
+    )
+    .Where(member => 
+      member is not IField field || !field.IsAutoBackingField()
+    )
+    .ToList();
+    
+  [...]
+}
+
+[Template] private bool _internalUnsavedChanges = false;
+```, caption: [Implementing IUnsavedChanges, creating the unsaved changes field and finding relevant members in `UnsavedChangesAttribute`]
+)<unsaved_changes_implementation_part1>
+
+In @unsaved_changes_implementation_part2 we see the template for implementing the private `GetUnsavedChanges()` method on the target which does the actual heavy lifting of determining whether or not there are unsaved changes in an instance of our target. This method is constructed in a bit of a special way using an `ExpressionBuilder` instead of template techniques shown in earlier template code. This is because using an `ExpressionBuilder` to build this method makes it much easier to express the logic we're trying to build, as we can simply feed the builder arbitrary syntax expressions that we want to have converted to run-time code later on in our return statement in line 31 and this syntax only needs to be valid *after* all our aspects have been processed. Because of this, all the code that is in this template method is compile-time code and as such, the convention of marking it pink has been skipped, merely the expressions that we feed into the `exprBuilder` variable are later converted to run-time code by Metalama. 
+
+We start out our logic in @unsaved_changes_implementation_part2 by adding a check to `_internalUnsavedChanges` of the current instance. Then, for each non-IEnumerable member that we identified in @unsaved_changes_implementation_part1, we append a verbatim boolean OR `||` followed by an expression that checks whether that members value has unsaved changes or not. If the type of that member is nullable, we must additionally take care not to cause a `NullReferenceException` by using the null-coalescing operator `?.` when accessing the `UnsavedChanges` property and defaulting to false on a null value via the `??` operator
+
+#figure(
+```cs
+[Template]
+private static bool GetUnsavedChanges(
+  [CompileTime] IEnumerable<IFieldOrProperty> relevantMembers,
+  [CompileTime] IEnumerable<IFieldOrProperty> relevantIEnumerableMembers
+)
+{
+  var exprBuilder = new ExpressionBuilder();
+  exprBuilder.AppendExpression(meta.This._internalUnsavedChanges);
+  foreach (var member in relevantMembers)
+  {
+    exprBuilder.AppendVerbatim("||");
+    if (member.Type.IsNullable!.Value)
+      exprBuilder.AppendExpression((member.Value?.UnsavedChanges ?? false));
+    else
+      exprBuilder.AppendExpression(member.Value!.UnsavedChanges);
+  }
+
+  foreach (var member in relevantIEnumerableMembers)
+  {
+    exprBuilder.AppendVerbatim("||");
+    var enumerableNullable = 
+      meta.CompileTime(member.Type.IsNullable!.Value);
+    var genericTypeNullable = 
+      meta.CompileTime((INamedType)member.Type).TypeArguments[0]
+        .IsNullable!.Value;
+    GetUnsavedChangesHandleIEnumerable(enumerableNullable,
+      genericTypeNullable, member, exprBuilder
+    );
+  }
+
+  return exprBuilder.ToExpression().Value;
+}
+```, caption: [Template code for implementation of private `GetUnsavedChanges()` method, without marking compile-time code pink]
+)<unsaved_changes_implementation_part2>
+
 
 == Example application of pattern
 == Technical limitations

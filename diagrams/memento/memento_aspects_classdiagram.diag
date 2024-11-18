@@ -34,7 +34,7 @@ class MementoCreateHookAttribute <<MethodAspect>> {
 }
 
 IMemento <.. IOriginator
-IOriginator <.. MementoAttribute
+IOriginator <.. MementoAttribute : implements on target
 IMemento <.. MementoAttribute
 MementoIgnoreAttribute <.. MementoAttribute
 StrictnessMode -- MementoAttribute

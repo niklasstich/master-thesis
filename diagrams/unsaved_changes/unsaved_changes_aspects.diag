@@ -1,9 +1,16 @@
 @startuml unsaved_changes_aspects
 interface IUnsavedChanges
 {
-    bool UnsavedChanges { get; }
-    void ResetUnsavedChanges();
+    + bool UnsavedChanges { get; }
+    + void ResetUnsavedChanges();
 }
 
+class UnsavedChangesAttribute <<TypeAspect>>
+{
+    + override void BuildAspect(IAspectBuilder<INamedType> builder)
+    + override void BuildEligibility(IEligibilityBuilder<INamedType> builder)
+}
+
+IUnsavedChanges <.. UnsavedChangesAttribute : implements on target
 
 @enduml
