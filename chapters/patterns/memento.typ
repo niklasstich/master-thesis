@@ -204,15 +204,15 @@ The methods we introduced here are merely stubs that call another method on the 
     ct(2, start: 5),
     ct(3, start: 5),
     ct(4, start: 5),
-    ct(9, start: 22, tag: "[1]", label: <memento_restore_implmethod_metacast>),
+    ct(9, start: 20, tag: "[1]", label: <memento_restore_implmethod_metacast>),
     ct(11, start: 9),
     ct(12, start: 9),
     ct(13, start: 9),
     ct(14, start: 13),
     ct(15, start: 15),
     ct(16, start: 15),
-    ct(17, start: 13, end:27, tag:"[2]", label: <memento_restore_implmethod_assignment_left>),
-    ct(18, start: 15, tag:"[3]", label: <memento_restore_implmethod_assignment_right>),
+    ct(17, start: 13, end:29, tag:"[2]", label: <memento_restore_implmethod_assignment_left>),
+    ct(18, start: 14, tag:"[3]", label: <memento_restore_implmethod_assignment_right>),
     ct(19, start: 9),
   ),
 
@@ -266,38 +266,39 @@ Next, we'll look at the implementation of the create method, which is a lot more
     ct(2, start: 5),
     ct(3, start: 5),
     ct(4, start: 7),
-    ct(6, start: 24),
-    ct(8, start: 6),
-    ct(9, start: 6),
-    ct(10, start: 8),
-    ct(11, start: 7),
+    ct(6, start: 23),
+    ct(8, start: 5),
+    ct(9, start: 5),
+    ct(10, start: 7),
+    ct(11, start: 5),
     ct(12, start: 5),
-    ct(13, start: 10),
+    ct(13, start: 9),
     ct(14, start: 13),
     ct(15, start: 15),
     ct(16, start: 13),
     ct(17, start: 13),
-    ct(18, start: 10, tag:"[1]", label: <memento_create_implmethod_value>),
-    ct(19, start: 13, end: 31),
-    ct(19, start: 39),
-    ct(20, start: 10),
+    ct(18, start: 9, tag:"[1]", label: <memento_create_implmethod_value>),
+    ct(19, start: 13, end: 35),
+    ct(19, start: 16),
+    ct(20, start: 9),
     ct(21, start: 11, tag:"[2]", label: <memento_create_implmethod_string>),
-    ct(23, start: 13, end: 31),
-    ct(23, start: 39),
-    ct(24, start: 10, tag:"[3]", label: <memento_create_implmethod_cloneable>),
-    ct(25, start: 13, end: 31),
-    ct(25, start: 39),
+    ct(22, start: 9),
+    ct(23, start: 13, end: 35),
+    ct(23, start: 16),
+    ct(24, start: 9, tag:"[3]", label: <memento_create_implmethod_cloneable>),
+    ct(25, start: 13, end: 35),
+    ct(25, start: 16),
     ct(26, start: 15),
     ct(27, start: 15),
     ct(28, start: 15),
     ct(29, start: 13),
-    ct(30, start: 10),
+    ct(30, start: 9),
     ct(31, start: 13),
     ct(32, start: 9, tag:"[4]", label: <memento_create_implmethod_enumerable>),
     ct(33, start: 11),
-    ct(34, start: 10, tag:"[5]", label: <memento_create_implmethod_default>),
-    ct(35, start: 13, end: 31),
-    ct(35, start: 39),
+    ct(34, start: 9, tag:"[5]", label: <memento_create_implmethod_default>),
+    ct(35, start: 11, end: 33),
+    ct(35, start: 14),
     ct(36, start: 5),
   ),
 )
@@ -325,7 +326,7 @@ public IMemento CreateMementoImpl<[CompileTime] TMementoType>(
             targetFieldOrProp.Value = sourceFieldOrProp.Value;
         else if (sourceFieldOrProp.Type
           .Is(SpecialType.String, ConversionKind.TypeDefinition)
-        ) 
+        )
             targetFieldOrProp.Value = sourceFieldOrProp.Value;
         else if (sourceFieldOrProp.Type.Is(typeof(ICloneable)))
             targetFieldOrProp.Value = meta.Cast(sourceFieldOrProp.Type, 
@@ -377,19 +378,19 @@ public override void BuildEligibility(IEligibilityBuilder<IMethod> builder)
   ```, caption: [`BuildEligibility` method for `MementoCreateHookAttribute` and `MementoRestoreHookAttribute` code snippet]
 )<createandrestore_eligibility>
 
+In @createhook_buildaspect_template we see the `BuildAspect` implementation for `MementoCreateHookAttribute`, which is quite simple. We first look for the `CreateMemento` method on the containing type of our target method and, given we were able to find it, call `builder.Advice.Override` on it with our `CreateMementoTemplate`, which takes in a reference to the target of this attribute declaration. Because we passed the reference to the original `CreateMemento()` method as the first argument to the override call, this means that the compile-time `meta.Proceed()` call in our template is converted to a run-time call to the `CreateMemento()` method, the result of which we save into a `memento` variable. We then call `target.Invoke(memento)`, which is converted to a run-time call to the hook method, before finally returning the memento. Note that the `dynamic` return type of this template is a syntax limitation of template methods and is replaced by Metalama with the actual return type of `meta.Proceed()`, which as discussed is `CreateMemento()`, and therefore the return type is `IMemento`.
+
+The implementation of `MementoRestoreHookAttribute` is analogous to the implementation of `MementoCreateHookAttribute` so it won't be shown here; the only relevant differences between the two is that we look for a method named `RestoreMemento` instead of `CreateMemento` in `BuildAspect` and we call a different template which gets it's memento variable from the method parameter of said `RestoreMemento` method via `target.Parameters` before passing it to the hook method.
+
 #codly(
   highlights: 
   (
     ct(15),
-    ct(16, start: 38, end: 50),
+    ct(16, start: 38, end: 51),
     ct(18, start: 19),
     ct(19, start: 5),
   )
 )
-
-In @createhook_buildaspect_template we see the `BuildAspect` implementation for `MementoCreateHookAttribute`, which is quite simple. We first look for the `CreateMemento` method on the containing type of our target method and, given we were able to find it, call `builder.Advice.Override` on it with our `CreateMementoTemplate`, which takes in a reference to the target of this attribute declaration. Because we passed the reference to the original `CreateMemento()` method as the first argument to the override call, this means that the compile-time `meta.Proceed()` call in our template is converted to a run-time call to the `CreateMemento()` method, the result of which we save into a `memento` variable. We then call `target.Invoke(memento)`, which is converted to a run-time call to the hook method, before finally returning the memento. Note that the `dynamic` return type of this template is a syntax limitation of template methods and is replaced by Metalama with the actual return type of `meta.Proceed()`, which as discussed is `CreateMemento()`, and therefore the return type is `IMemento`.
-
-The implementation of `MementoRestoreHookAttribute` is analogous to the implementation of `MementoCreateHookAttribute` so it won't be shown here; the only relevant differences between the two is that we look for a method named `RestoreMemento` instead of `CreateMemento` in `BuildAspect` and we call a different template which gets it's memento variable from the method parameter of said `RestoreMemento` method via `target.Parameters` before passing it to the hook method.
 
 #figure(
 ```cs

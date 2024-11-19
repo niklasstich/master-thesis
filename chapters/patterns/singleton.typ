@@ -143,7 +143,7 @@ In the `CreateLazyInstance` template in @singleton_lazy_new_constraint, we once 
     ct(22, start: 12, end: 24),
     ct(25),
     ct(26, start: 40, end: 54),
-    ct(26, start: 59, tag: "[2]", label: <singleton_lazy_new_constraint>),
+    ct(26, start: 45, tag: "[2]", label: <singleton_lazy_new_constraint>),
     ct(28, start: 5, end: 17)
   )
 )
