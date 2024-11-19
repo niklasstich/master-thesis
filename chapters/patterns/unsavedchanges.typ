@@ -192,9 +192,10 @@ public override void BuildAspect(IAspectBuilder<INamedType> builder)
 ```, caption: [Implementing IUnsavedChanges, creating the unsaved changes field and finding relevant members in `UnsavedChangesAttribute`]
 )<unsaved_changes_implementation_part1>
 
-In @unsaved_changes_implementation_part2 we see the template for implementing the private `GetUnsavedChanges()` method on the target which does the actual heavy lifting of determining whether or not there are unsaved changes in an instance of our target. This method is constructed in a bit of a special way using an `ExpressionBuilder` instead of template techniques shown in earlier template code. This is because using an `ExpressionBuilder` to build this method makes it much easier to express the logic we're trying to build, as we can simply feed the builder arbitrary syntax expressions that we want to have converted to run-time code later on in our return statement in line 31 and this syntax only needs to be valid *after* all our aspects have been processed. Because of this, all the code that is in this template method is compile-time code and as such, the convention of marking it pink has been skipped, merely the expressions that we feed into the `exprBuilder` variable are later converted to run-time code by Metalama. 
+In @unsaved_changes_implementation_part2 we see the template for implementing the private `GetUnsavedChanges()` method on the target which does the actual heavy lifting of determining whether or not there are unsaved changes in an instance of our target. It takes in the previously contructed lists of relevant members from @unsaved_changes_implementation_part1 as compile-time variables. This method is constructed in a bit of a special way using an `ExpressionBuilder` instead of template techniques shown in earlier template code. This is because using an `ExpressionBuilder` to build this method makes it much easier to express the logic we're trying to build, as we can simply feed the builder arbitrary syntax expressions that we want to have converted to run-time code later on in our return statement in line 31 and this syntax only needs to be valid *after* all our aspects have been processed. Because of this, all the code that is in this template method is compile-time code and as such, the convention of marking it pink has been skipped, merely the expressions that we feed into the `exprBuilder` variable are later converted to run-time code by Metalama. 
 
-We start out our logic in @unsaved_changes_implementation_part2 by adding a check to `_internalUnsavedChanges` of the current instance. Then, for each non-IEnumerable member that we identified in @unsaved_changes_implementation_part1, we append a verbatim boolean OR `||` followed by an expression that checks whether that members value has unsaved changes or not. If the type of that member is nullable, we must additionally take care not to cause a `NullReferenceException` by using the null-coalescing operator `?.` when accessing the `UnsavedChanges` property and defaulting to false on a null value via the `??` operator
+We start out our logic in @unsaved_changes_implementation_part2 by adding a check to `_internalUnsavedChanges` of the current instance. Then, for each non-IEnumerable member that we identified in @unsaved_changes_implementation_part1, we append a verbatim boolean OR `||` followed by an expression that checks whether that members value has unsaved changes or not. If the type of that member is nullable, we must additionally take care not to cause a `NullReferenceException` by using the null-conditional operator `?.` @dotnetdocs[Member access operators and expressions - the dot, indexer, and invocation operators. - section Null-conditional operators ?. and ?[]] when accessing the `UnsavedChanges` property and defaulting to false on a null value via the null-coalescing operator `??` @dotnetdocs[?? and ??= operators - the null-coalescing operators].
+
 
 #figure(
 ```cs
@@ -233,8 +234,191 @@ private static bool GetUnsavedChanges(
 ```, caption: [Template code for implementation of private `GetUnsavedChanges()` method, without marking compile-time code pink]
 )<unsaved_changes_implementation_part2>
 
+We then go over every `IEnumerable<T>` member we collected in @unsaved_changes_implementation_part1 and, in @unsaved_changes_implementation_part3, similarly build out the logic for the enumerable members, however instead checking every member of the collection for unsaved changes via the LINQ `.Any()` method. Here, we must be careful to check not only whether the `IEnumerable<T>` type itself is nullable, but also whether the `T` type argument inside of that type is nullable (see lines 21 to 25 in @unsaved_changes_implementation_part2), and build in null-safety checks accordingly as described above#footnote[The syntax for the case that the enumerable type is nullable had to be appended via interpolated verbatim strings, as it was impossible to create the logic required as a statement with valid C\# syntax here.]. The correct syntax is then appended to the expression builder once more, which finally in line 31 of @unsaved_changes_implementation_part2 returns the value of this boolean expression as the return value of the method. 
+
+#figure(
+```cs
+[Template]
+private static void GetUnsavedChangesHandleIEnumerable(
+  [CompileTime] bool enumerableNullable,
+  [CompileTime] bool genericTypeNullable,
+  [CompileTime] IFieldOrProperty member,
+  [CompileTime] ExpressionBuilder exprBuilder
+)
+{
+  if (enumerableNullable)
+  {
+    //TODO: maybe un-verbatim-ify this?
+    exprBuilder.AppendVerbatim(genericTypeNullable
+      ? $"({member.Name} is null ? false : {member.Name}.Any(v => v?.UnsavedChanges ?? false))"
+      : $"({member.Name} is null ? false : {member.Name}.Any(v => v.UnsavedChanges))");
+  }
+  else
+  {
+    exprBuilder.AppendExpression(genericTypeNullable
+      ? ((IEnumerable<IUnsavedChanges?>)member.Value!).Any(v => v?.UnsavedChanges ?? false)
+      : ((IEnumerable<IUnsavedChanges>)member.Value!).Any(v => v.UnsavedChanges));
+  }
+}
+```, caption: [`GetUnsavedChangesHandleIEnumerable` template code, compile-time code is again not marked as it consists of exclusively compile-time code]
+)<unsaved_changes_implementation_part3>
+
+Finally in @unsaved_changes_implementation_part4, we introduce the `ResetUnsavedChanges` method via another template#footnote([Not shown here for brevity, but it essentially does the same thing as the `GetUnsavedChanges` template by going over all members and enumerable members and calling `ResetUnsavedChanges` on the objects.]) and the `UnsavedChanges` property via a final template that simply calls the `GetUnsavedChanges()` method on the instance.
+
+#codly(
+  highlights:
+  (
+    ct(18, end: 10),
+    ct(18, start:42, end: 50),
+  )
+)
+#figure(
+```cs
+public override void BuildAspect(IAspectBuilder<INamedType> builder)
+{
+  [...]
+  builder.IntroduceMethod(nameof(ResetUnsavedChanges),
+    IntroductionScope.Instance,
+    buildMethod: mBuilder =>
+      { mBuilder.Accessibility = Accessibility.Public; },
+    args: new { relevantMembers, relevantIEnumerableMembers }
+  );
+
+  builder.IntroduceProperty(nameof(UnsavedChanges),
+    IntroductionScope.Instance,
+    buildProperty: pBuilder =>
+      { pBuilder.Accessibility = Accessibility.Public; }
+  );
+  [...]
+}
+[...]
+[Template] public bool UnsavedChanges => meta.This.GetUnsavedChanges();
+```, caption: [Continuation of `BuildAspect` method from @unsaved_changes_implementation_part1]
+)<unsaved_changes_implementation_part4>
 
 == Example application of pattern
+In @unsaved_changes_diff, we see the
+#pagebreak(weak: true)
+#figure(
+```diff
+ using Moyou.Aspects.UnsavedChanges;
+ namespace Moyou.UnitTest.UnsavedChanges;
+ 
+ [UnsavedChanges]
+-public partial class A
++public partial class A: IUnsavedChanges
+ {
+     public B B { get; set; }
+     public IEnumerable<B?> Bs { get; set; }
+     public IEnumerable<B>? Bs2 { get; set; }
+     public void SetUnsavedChanges() => _internalUnsavedChanges = true;
++
++    private bool _internalUnsavedChanges = false;
++
++    public bool UnsavedChanges
++    {
++        get
++        {
++            return this.GetUnsavedChanges();
++        }
++    }
++
++    private bool GetUnsavedChanges()
++    {
++        return (bool)(this._internalUnsavedChanges ||
++          this.B.UnsavedChanges ||
++          Enumerable.Any(((IEnumerable<IUnsavedChanges?>)this.Bs), v => v?.UnsavedChanges ?? false) ||
++          (Bs2 is null ? false : Bs2.Any(v => v.UnsavedChanges))
++        );
++    }
++
++    public void ResetUnsavedChanges()
++    {
++        this._internalUnsavedChanges = false;
++        B.ResetUnsavedChanges();
++        foreach (var val in Bs)
++        {
++            val?.ResetUnsavedChanges();
++        }
++        if (Bs2 is not null)
++        {
++            foreach (var val_1 in Bs2!)
++            {
++                val_1.ResetUnsavedChanges();
++            }
++        }
++    }
+ }
+ 
+ [UnsavedChanges]
+-public partial class B
++public partial class B: IUnsavedChanges
+ {
+     public C C { get; set; }
+     public C? C1 { get; set; }
+     public IEnumerable<C> Cs { get; set; }
+     public void SetUnsavedChanges() => _internalUnsavedChanges = true;
++
++    private bool _internalUnsavedChanges = false;
++
++    public bool UnsavedChanges
++    {
++        get
++        {
++            return this.GetUnsavedChanges();
++        }
++    }
++
++    private bool GetUnsavedChanges()
++    {
++        return (bool)(this._internalUnsavedChanges ||
++          this.C.UnsavedChanges ||
++          (this.C1?.UnsavedChanges ?? false) ||
++          Enumerable.Any(((IEnumerable<IUnsavedChanges>)this.Cs), v_1 => v_1.UnsavedChanges)
++        );
++    }
++
++    public void ResetUnsavedChanges()
++    {
++        this._internalUnsavedChanges = false;
++        C.ResetUnsavedChanges();
++        C1?.ResetUnsavedChanges();
++        foreach (var val in Cs)
++        {
++            val.ResetUnsavedChanges();
++        }
++    }
+ }
+ 
+ [UnsavedChanges]
+-public partial class C
++public partial class C: IUnsavedChanges
+ {
+     private int Foobar { get; set; }
+     public void SetUnsavedChanges() => _internalUnsavedChanges = true;
++
++    private bool _internalUnsavedChanges = false;
++
++    public bool UnsavedChanges
++    {
++        get
++        {
++            return this.GetUnsavedChanges();
++        }
++    }
++
++    private bool GetUnsavedChanges()
++    {
++        return _internalUnsavedChanges;
++    }
++
++    public void ResetUnsavedChanges()
++    {
++        this._internalUnsavedChanges = false;
++    }
+ }
+```, caption: []
+)<unsaved_changes_diff>
 == Technical limitations
 == Impact and consequences of aspects<unsaved_consequences>
 TODO: probably not performance optimal on REALLY big hierarchies (discussion of depth-first vs breadth-first)
