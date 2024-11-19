@@ -1,0 +1,27 @@
+@startuml unsaved_changes_example_class
+class A <<UnsavedChanges>>
+{
+    + B B { get; set; }
+    + IEnumerable<B?> Bs { get; set; }
+    + IEnumerable<\B>? Bs2 { get; set; }
+    + void SetUnsavedChanges()
+}
+
+class B <<UnsavedChanges>>
+{
+    + C C { get; set; }
+    + C? C1 { get; set; }
+    + IEnumerable<C> Cs { get; set; }
+    + void SetUnsavedChanges()
+}
+
+class C <<UnsavedChanges>>
+{
+    - int Foobar { get; set; }
+    + void SetUnsavedChanges()
+}
+
+A o-- B
+B o-- C
+
+@enduml

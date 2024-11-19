@@ -3,7 +3,7 @@
 
 = Unsaved changes<unsaved_changes>
 
-== Analysis of pattern
+== Analysis of pattern<unsaved_changes_analysis>
 TODO: reference dirty bit? not exactly the same problem but similar solution, however this is cascading where as dirty bit isnt. find literature?
 
 The pattern described in this section is certainly nothing new, and the author of this work is not claiming to have invented a new pattern here, however it is very difficult to find any substantial literature on it#footnote([The closest thing that can be found is the "dirty flag" pattern, which is often used in games or other applications where performance is critical to only calculate certain things exactly when they are needed. Both the problem that's being solved with that pattern and the solution to it is different to what will be explained here, however, as we are more concerned with notifying our UI whether *any* object in our hierarchy has changed rather than saving operations at an object level. An example analysis of that pattern can be found at https://gameprogrammingpatterns.com/dirty-flag.html.]). As such, we will first describe the problem it tries to solve here, then propose a systematic solution to it, before going into how to automate implementing it.
@@ -192,7 +192,7 @@ public override void BuildAspect(IAspectBuilder<INamedType> builder)
 ```, caption: [Implementing IUnsavedChanges, creating the unsaved changes field and finding relevant members in `UnsavedChangesAttribute`]
 )<unsaved_changes_implementation_part1>
 
-In @unsaved_changes_implementation_part2 we see the template for implementing the private `GetUnsavedChanges()` method on the target which does the actual heavy lifting of determining whether or not there are unsaved changes in an instance of our target. It takes in the previously contructed lists of relevant members from @unsaved_changes_implementation_part1 as compile-time variables. This method is constructed in a bit of a special way using an `ExpressionBuilder` instead of template techniques shown in earlier template code. This is because using an `ExpressionBuilder` to build this method makes it much easier to express the logic we're trying to build, as we can simply feed the builder arbitrary syntax expressions that we want to have converted to run-time code later on in our return statement in line 31 and this syntax only needs to be valid *after* all our aspects have been processed. Because of this, all the code that is in this template method is compile-time code and as such, the convention of marking it pink has been skipped, merely the expressions that we feed into the `exprBuilder` variable are later converted to run-time code by Metalama. 
+In @unsaved_changes_implementation_part2 we see the template for implementing the private `GetUnsavedChanges()` method on the target which does the actual heavy lifting of determining whether or not there are unsaved changes in an instance of our target. It takes in the previously contructed lists of relevant members from @unsaved_changes_implementation_part1 as compile-time variables. This method is constructed in a bit of a special way using an `ExpressionBuilder` instead of template techniques shown in earlier template code. This is because using an `ExpressionBuilder` to build this method makes it much easier to express the logic we're trying to build, as we can simply feed the builder arbitrary syntax expressions that we want to have converted to run-time code later on in our return statement in line 31 and this syntax only needs to be valid *after* all our aspects have been processed. Because of this, all the code that is in this template method (except the return statement) is compile-time code and as such, the convention of marking it pink has been skipped, merely the expressions that we feed into the `exprBuilder` variable are later converted to run-time code by Metalama. 
 
 We start out our logic in @unsaved_changes_implementation_part2 by adding a check to `_internalUnsavedChanges` of the current instance. Then, for each non-IEnumerable member that we identified in @unsaved_changes_implementation_part1, we append a verbatim boolean OR `||` followed by an expression that checks whether that members value has unsaved changes or not. If the type of that member is nullable, we must additionally take care not to cause a `NullReferenceException` by using the null-conditional operator `?.` @dotnetdocs[Member access operators and expressions - the dot, indexer, and invocation operators. - section Null-conditional operators ?. and ?[]] when accessing the `UnsavedChanges` property and defaulting to false on a null value via the null-coalescing operator `??` @dotnetdocs[?? and ??= operators - the null-coalescing operators].
 
@@ -297,8 +297,13 @@ public override void BuildAspect(IAspectBuilder<INamedType> builder)
 )<unsaved_changes_implementation_part4>
 
 == Example application of pattern
-In @unsaved_changes_diff, we see the
-#pagebreak(weak: true)
+In @unsaved_changes_diff, we see the how the diff view for an example class structure in @unsaved_changes_diff_diag looks like. The example at hand is still quite simple, but includes normal associations as well as aggregate associations with different nullabilities. Because of this, the `GetUnsavedChanges()` implementation of class `A` already has considerable complexity, even though we only have three members in that class. Each of the types also has a method to set unsaved changes from the outside, this is so we can set unsaved changes from the outside in our unit tests and check that both getting the unsaved changes and resetting them works properly.
+
+#figure(
+image("../../diagrams/unsaved_changes/unsaved_changes_example_class.svg"),
+caption: [Example data structure for `<<UnsavedChanges>>`. The backslash in member `Bs2` in class `A` is needed because of a PlantUML limitation.]
+)<unsaved_changes_diff_diag>
+
 #figure(
 ```diff
  using Moyou.Aspects.UnsavedChanges;
@@ -417,9 +422,12 @@ In @unsaved_changes_diff, we see the
 +        this._internalUnsavedChanges = false;
 +    }
  }
-```, caption: []
+```, caption: [Example code diff view for the example in @unsaved_changes_diff_diag]
 )<unsaved_changes_diff>
-== Technical limitations
+//== Technical limitations
 == Impact and consequences of aspects<unsaved_consequences>
-TODO: probably not performance optimal on REALLY big hierarchies (discussion of depth-first vs breadth-first)
+Once again, we can name similar improvements of the automatic implementation of this pattern over the manual implementation similar to the consequences mentioned in @memento_consequences and @singleton_consequences. For one, we've extracted a responsibility out of our functionally interesting code by extracting the implementation of the unsaved changes pattern into a separate aspect. Whenever we add a new entity class into our hierarchy now which also needs to conform to this unsaved changes pattern, we simply mark it with the attribute, add it wherever we need it in our existing entity types and the implementation of the `GetUnsavedChanges()` method in all our entities will automatically be adjusted everywhere without further need for user input. This makes maintaining, understanding and reasoning about our domain model much more easy and gives us the assurance that our unsaved changes implementation is robust and bug-free. We also again profit from not having to repeat very similar code over and over again across our code base, and from the fact that we can test our aspect generates correct code once, and test this generated code once, to ensure that our aspect implementation works as intended across a multitude of similar inputs.
+
+It has to be mentioned again, however, that this implementation of unsaved changes is by far *not* performance optimized. For one, if we really only need to ever know that *any* unsaved change has occurred in our object hierarchy, we should use the alternative implementation using a delegate call mentioned in @unsaved_changes_analysis. Even if that is the case, the implementation presented here is not optimal as we do not cache the result of our unsaved changes lookup at all and need to repeat our entire analysis every time#footnote([Solving this issue would need some sort of NotifyPropertyChanged implementation.]). Fortunately, at least the boolean OR operator `||` is short-circuiting in C\#@dotnetdocs[Boolean logical operators], meaning that as soon as we find *any* true value, we don't need to evaluate all other members in the hierarchy anymore. For really big hierarchies, it might also be worthwhile to think about depth-first vs breadth-first traversal of the tree problem mentioned in @unsaved_changes_analysis.
+
 #pagebreak(weak: true)
