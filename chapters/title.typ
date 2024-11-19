@@ -29,7 +29,7 @@
 #v(1fr)
 
 #table(align: left, columns: 2, column-gutter: 0.7cm, stroke: none,
-"Aufgabensteller/Prüfer", "Prof. Dr. Georg Habel",
+"Aufgabensteller/Prüfer", "Prof. Dr. Georg Hagel",
 "Arbeit vorgelegt am", "30.11.2024",
 "durchgeführt in der", "Fakultät Informatik",
 )
