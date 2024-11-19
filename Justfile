@@ -1,4 +1,4 @@
-set windows-shell := ["pwsh", "-NoLogo", "-Command"]
+#set windows-shell := ["pwsh", "-NoLogo", "-Command"]
 
 build: build-images
 	typst compile vorlage.typ output.pdf
