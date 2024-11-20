@@ -48,7 +48,7 @@ Due to the very nature of these patterns, they describe problems in a way that i
 This work is concerned with how we can use aspect-oriented programming to automatically implement various classic software design patterns such as the ones found in @Gamma1994 and a non-conventional example. These patterns often try to solve a cross-cutting concern, but because they are confined to the paradigm of object-oriented programming, this approach has drawbacks. The concrete advantages of using AOP to address the implementation of these patterns will become clear once we apply the principles to concrete examples and will be thoroughly analyzed in Sections #ref(<memento_consequences>, supplement: none), #ref(<singleton_consequences>, supplement: none), #ref(<unsaved_consequences>, supplement: none) and #ref(<factory_consequences>, supplement: none).
 
 == .NET ecosystem metaprogramming solutions
-In the .NET ecosystem, which has been chosen for this work as the author is most familiar with C\# from previous work experience, there are several tools available that may facilitate AOP and metaprogramming in general to various degrees. Ideally, we would want to use a .NET based templating solution so we can write C\# code that generates C\# code, as it is most comfortable for a developer to stay in the same ecosystem they are already familiar with. Some possible solutions will be explored in this section, no claim is being made that this list of solutions is exhaustive or that there doesn't exist a more ideal solution.
+In the .NET ecosystem, which has been chosen for this work as the author is most familiar with C\# from previous work experience, there are several tools available that may facilitate AOP, code generation or metaprogramming in general to various degrees. Ideally, we would want to use a .NET based templating solution so we can write C\# code that generates C\# code, as it is most comfortable for a developer to stay in the same ecosystem they are already familiar with. Some possible solutions will be explored in this section, no claim is being made that this list of solutions is exhaustive or that there doesn't exist a more ideal solution.
 
 TODO: NUTZWERTANALYSE => Siehe dazu Projektmanagement Burghardt ISBN 978-3-89578-472-9
 === T4 templates
@@ -147,6 +147,7 @@ As mentioned, at the core of Metalama functionality are aspects, standard C\# cl
 #figure(
     image("../diagrams/metalama_stereotypes.svg"), caption: [Class diagram showing type relations in Metalama and aspect stereotype convention used in this paper (the abstract classes the aspects inherit from will not be repeated every time). Diagram is non-exhaustive and does not show all members on all types.]
 )<metalama_classdiag>
+
 Fortunately, as aspects are a much higher-level API than the source generator API, it is much simpler to find out revelant information about our targets as there is already a lot of information prepared for us via convenience methods of the Metalama framework. As an example, the code for finding out whether a type has an attribute applied to it is depicted in @metalama_aspect_example (compare with the source generator example from @source_generator_hasmemento).
 
 #figure(
@@ -184,7 +185,64 @@ public class LogAttribute : OverrideMethodAspect
 ```, caption: [Example implementation of console logging using Metalama, taken from @metadocs[Commented examples - Logging - Step 2. Adding the method name]]
 )<metalama_logging_example>
 
-TODO: introduce fabrics
+Internally, Metalama takes these templates and compiles them into a a string of `ITemplateSyntaxFactory`#footnote([See https://github.com/postsharp/Metalama.Framework/blob/release/2024.2/Metalama.Framework.CompileTimeContracts/ITemplateSyntaxFactory.cs and https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.csharp.syntaxfactory?view=roslyn-dotnet-4.9.0]) statements that dynamically build the code that the template is supposed to generate.#footnote([Information sourced from private communication with Gael Fraiteur on Nov. 20th, 2024 (via Zoom)]) In @metalama_template_syntaxfactory we see an example of how a very simple template method with just one return statement is transformed into calls to the Metalama interface `ITemplateSyntaxFactory` and Roslyn `SyntaxFactory` type. Later on, after the template compilation step is complete, all the applicable targets of an aspect are collected and sorted by depth, starting at the base type of a type hierarchy and all targets of the same depth are passed through the aspect (in a parallelized manner for better performance), where the aspects then call these compiled template functions with the information acquired from the target inside of their `BuildAspect()` methods#footnote([Information sourced from private communication with Gael Fraiteur on Nov. 20th, 2024 (via Zoom)]).
+#figure(
+```cs
+private static SyntaxNode __GetLazyInstance(ITemplateSyntaxFactory templateSyntaxFactory, TemplateTypeArgument T)
+{
+  List<StatementOrTrivia> __s1 = new List<StatementOrTrivia>();
+  meta.DebugBreak();
+
+  // return meta.ThisType._instance.Value;
+  templateSyntaxFactory.AddStatement(                
+    __s1,
+    templateSyntaxFactory.AddSimplifierAnnotations(                    
+      templateSyntaxFactory.ReturnStatement(                        
+        templateSyntaxFactory.AddSimplifierAnnotations(                            
+          SyntaxFactory.MemberAccessExpression(                                
+            SyntaxKind.SimpleMemberAccessExpression,
+            templateSyntaxFactory.DynamicMemberAccessExpression(                                    
+              templateSyntaxFactory.GetUserExpression(meta.ThisType),
+              "_instance"),
+            SyntaxFactory.Token(SyntaxKind.DotToken),
+            SyntaxFactory.IdentifierName(
+              SyntaxFactory.Identifier("Value")))))));
+  return SyntaxFactory.Block(default,
+    templateSyntaxFactory.ToStatementList(__s1)
+  );
+}
+```, caption: [Example of a very simple template expression that was transformed into `SyntaxFactory` statements. Snippet has been shortened by removing fully qualified global type names.]
+)<metalama_template_syntaxfactory>
+
+TODO: fabrics
+
+Another important feature of Metalama are Fabrics, these are classes that allow us to apply our aspects across many declarations in our code base by writing imperative code instead of having to mark every type or member manually@metadocs[Adding many aspects at once & More about fabrics]. For example, in @metalama_fabric_example, we see a `ProjectFabric` that will run in our project and mark *every* method on *every* type with the `LogAttribute` aspect example from @metalama_logging_example. Using these fabrics to apply aspects to our classes is very convenient, as types and their methods and members et cetera are represented using `IEnumerable` collections, which we can easily filter and apply transformations to using LINQ syntax (like seen in the example with the `SelectMany` statement, which selects a member on each entry and flattens the resulting new enumerable@dotnetdocs[Enumerable.SelectMany Method]). This makes it usually quite easy to understand the fabric code and reason about which of our aspects are applied to which declarations in our code base. For example, we could easily write a fabric that takes all classes from one of our namespaces that contains all our entities and apply the `[Memento]` and `[UnsavedChanges]` aspects from @memento and @unsaved_changes respectively to these types.
+
+#figure(
+```cs
+using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using System.Linq;
+
+namespace Doc.ProjectFabric_TwoAspects;
+
+internal class Fabric : ProjectFabric
+{
+    public override void AmendProject(IProjectAmender project)
+    {
+        AddLogging( project );
+    }
+
+    private static void AddLogging(IProjectAmender project)
+    {
+        project
+            .SelectMany( p => p.Types )
+            .SelectMany( t => t.Methods )
+            .AddAspectIfEligible<LogAttribute>();
+    }
+}
+```, caption: [Example shortened from @metadocs[Adding many aspects at once, Example 2 - Fabric Code]]
+)<metalama_fabric_example>
 
 == Moyou
 While working on this topic, the Metalama aspect library project Moyou (japanese #text(font: "Noto Sans JP")[模様], transliterated as moyō, meaning pattern or design) was created to house the implementations of all the patterns presented in this work. The repository of the project is freely accessible at [https://github.com/niklasstich/moyou].
@@ -192,11 +250,11 @@ While working on this topic, the Metalama aspect library project Moyou (japanese
 The Moyou project is largely divided into 5 namespaces: 
 - `Moyou.Aspects`, where the actual implementations presented in Sections #ref(<memento>, supplement: none), #ref(<singleton>, supplement: none), #ref(<unsaved_changes>, supplement: none) and #ref(<factory>, supplement: none) can be found,
 - `Moyou.Diagnostics`, which holds the information required in diagnostics emitted by the aspect implementations,
-- `Moyou.Extensions`, a collection of useful C\# extension methods@dotnetdocs[Extension Methods (C\# Programming Guide)] used across various aspects,
+- `Moyou.Extensions`, a collection of useful extension methods@dotnetdocs[Extension Methods (C\# Programming Guide)] used across various aspects,
 - `Moyou.Test`, a library of text-based snapshot tests that verify that, for a given input, our aspects generate the correct output code,
 - `Moyou.UnitTest`, another test library which applies aspects to actual classes and tests that the generated code functions as expected.
 
-Regarding `Moyou.Test`, special care was taken to consider as many likely scenarios of kinds input to the aspects as possible, including input that results in warning or error diagnostics by the aspects (such as e.g. marking an abstract class as a singleton). The benefits of splitting testing across both compile-time and run-time code of aspects will be more thoroughly explained after the first aspect is introduced in @memento_consequences.
+Regarding `Moyou.Test`, special care was taken to consider as many likely scenarios of possible kinds of input to the aspects as possible, including input that results in warning or error diagnostics by the aspects (such as e.g. marking an abstract class as a singleton). The benefits of splitting testing across both compile-time and run-time code of aspects will be more thoroughly explained after the first aspect is introduced in @memento_consequences.
 
 Whenever source code from the Moyou project is shown as a listing anywhere in this paper, a footnote with a permalink to the file in the GitHub repository will be provided.
 
