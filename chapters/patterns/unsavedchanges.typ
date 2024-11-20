@@ -263,13 +263,13 @@ private static void GetUnsavedChangesHandleIEnumerable(
 ```, caption: [`GetUnsavedChangesHandleIEnumerable` template code, compile-time code is again not marked as it consists of exclusively compile-time code]
 )<unsaved_changes_implementation_part3>
 
-Finally in @unsaved_changes_implementation_part4, we introduce the `ResetUnsavedChanges` method via another template#footnote([Not shown here for brevity, but it essentially does the same thing as the `GetUnsavedChanges` template by going over all members and enumerable members and calling `ResetUnsavedChanges` on the objects.]) and the `UnsavedChanges` property via a final template that simply calls the `GetUnsavedChanges()` method on the instance.
+Finally in @unsaved_changes_implementation_part4, we introduce the `ResetUnsavedChanges` method via another template#footnote([Not shown here for brevity, but it essentially does the same thing as the `GetUnsavedChanges` template by going over all members and enumerable members and calling `ResetUnsavedChanges` on the objects.]) and the `UnsavedChanges` property via a final template that simply calls the `GetUnsavedChanges()` method on the instance. We want these to be public, as these are the public facing contract of the `IUnsavedChanges` interface.
 
 #codly(
   highlights:
   (
     ct(18, end: 10),
-    ct(18, start:42, end: 50),
+    ct(18, start: 32, end: 40),
   )
 )
 #figure(
@@ -299,10 +299,6 @@ public override void BuildAspect(IAspectBuilder<INamedType> builder)
 == Example application of pattern
 In @unsaved_changes_diff, we see the how the diff view for an example class structure in @unsaved_changes_diff_diag looks like. The example at hand is still quite simple, but includes normal associations as well as aggregate associations with different nullabilities. Because of this, the `GetUnsavedChanges()` implementation of class `A` already has considerable complexity, even though we only have three members in that class. Each of the types also has a method to set unsaved changes from the outside, this is so we can set unsaved changes from the outside in our unit tests and check that both getting the unsaved changes and resetting them works properly.
 
-#figure(
-image("../../diagrams/unsaved_changes/unsaved_changes_example_class.svg"),
-caption: [Example data structure for `<<UnsavedChanges>>`. The backslash in member `Bs2` in class `A` is needed because of a PlantUML limitation.]
-)<unsaved_changes_diff_diag>
 
 #figure(
 ```diff
@@ -424,6 +420,10 @@ caption: [Example data structure for `<<UnsavedChanges>>`. The backslash in memb
  }
 ```, caption: [Example code diff view for the example in @unsaved_changes_diff_diag]
 )<unsaved_changes_diff>
+#figure(
+image("../../diagrams/unsaved_changes/unsaved_changes_example_class.svg"),
+caption: [Example data structure for `<<UnsavedChanges>>`. The backslash in member `Bs2` in class `A` is needed because of a PlantUML limitation.]
+)<unsaved_changes_diff_diag>
 //== Technical limitations
 == Impact and consequences of aspects<unsaved_consequences>
 Once again, we can name similar improvements of the automatic implementation of this pattern over the manual implementation similar to the consequences mentioned in @memento_consequences and @singleton_consequences. For one, we've extracted a responsibility out of our functionally interesting code by extracting the implementation of the unsaved changes pattern into a separate aspect. Whenever we add a new entity class into our hierarchy now which also needs to conform to this unsaved changes pattern, we simply mark it with the attribute, add it wherever we need it in our existing entity types and the implementation of the `GetUnsavedChanges()` method in all our entities will automatically be adjusted everywhere without further need for user input. This makes maintaining, understanding and reasoning about our domain model much more easy and gives us the assurance that our unsaved changes implementation is robust and bug-free. We also again profit from not having to repeat very similar code over and over again across our code base, and from the fact that we can test our aspect generates correct code once, and test this generated code once, to ensure that our aspect implementation works as intended across a multitude of similar inputs.

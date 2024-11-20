@@ -293,13 +293,12 @@ Next, we'll look at the implementation of the create method, which is a lot more
     ct(28, start: 15),
     ct(29, start: 13),
     ct(30, start: 9),
-    ct(31, start: 13),
-    ct(32, start: 9, tag:"[4]", label: <memento_create_implmethod_enumerable>),
-    ct(33, start: 11),
-    ct(34, start: 9, tag:"[5]", label: <memento_create_implmethod_default>),
-    ct(35, start: 11, end: 33),
-    ct(35, start: 14),
-    ct(36, start: 5),
+    ct(31, start: 11, tag:"[4]", label: <memento_create_implmethod_enumerable>),
+    ct(32, start: 11),
+    ct(33, start: 9, tag:"[5]", label: <memento_create_implmethod_default>),
+    ct(34, start: 11, end: 33),
+    ct(34, start: 14),
+    ct(35, start: 5),
   ),
 )
 #figure(
@@ -335,8 +334,7 @@ public IMemento CreateMementoImpl<[CompileTime] TMementoType>(
               null
             );
         else if (sourceFieldOrProp.Type
-            .Is(SpecialType.IEnumerable_T, ConversionKind.TypeDefinition)
-        )
+          .Is(SpecialType.IEnumerable_T, ConversionKind.TypeDefinition))
           HandleIEnumerable(sourceFieldOrProp, targetFieldOrProp);
         else
           targetFieldOrProp.Value = sourceFieldOrProp.Value;
