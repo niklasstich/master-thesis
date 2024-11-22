@@ -1,4 +1,4 @@
-= Factory<factory>
+= (Abstract) Factory<factory>
 
 == Analysis of pattern
 
