@@ -1,0 +1,73 @@
+@startuml factory_class
+together {
+    interface IAbstractFactory
+    {
+        + IComponent CreateComponent()
+        + IOtherComponent CreateOtherComponent()
+    }
+
+    class ConcreteFactoryA 
+    {
+        + IComponent CreateComponent()
+        + IOtherComponent CreateOtherComponent()
+    }
+
+    class ConcreteFactoryB 
+    {
+        + IComponent CreateComponent()
+        + IOtherComponent CreateOtherComponent()
+    }
+
+}
+
+together {
+    interface IComponent
+    {
+    }
+
+    class ConcreteComponentA
+    {
+    }
+
+    class ConcreteComponentB
+    {
+    }
+}
+
+together {
+    interface IOtherComponent
+    {
+    }
+
+    class ConcreteOtherComponentA
+    {
+    }
+
+    class ConcreteOtherComponentB
+    {
+    }
+}
+
+ConcreteFactoryA ...u|> IAbstractFactory
+ConcreteFactoryA ..> ConcreteComponentA : instantiates
+ConcreteFactoryA ..> ConcreteOtherComponentA : instantiates
+ConcreteComponentA ...u|> IComponent
+ConcreteOtherComponentA ...u|> IOtherComponent
+
+
+
+ConcreteFactoryB ...u|> IAbstractFactory
+ConcreteFactoryB ..> ConcreteComponentB : instantiates
+ConcreteFactoryB ..> ConcreteOtherComponentB : instantiates
+ConcreteComponentB ...u|> IComponent
+ConcreteOtherComponentB ...u|> IOtherComponent
+
+class Consumer
+{
+}
+Consumer -> IAbstractFactory
+Consumer -> IComponent
+Consumer -> IOtherComponent
+
+
+@enduml
