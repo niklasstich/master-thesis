@@ -57,4 +57,6 @@
 ]
 
 #let ct-pink = color.rgb("#e015c263")
+#let gen-green = color.rgb("#33DE68B0")
 #let ct(ln, start: none, end: none, tag: none, label: none) = (line: ln, start: start, end: end, fill: ct-pink, tag: tag, label: label)
+#let gen(ln, start: none, end: none, tag: none, label: none) = (line: ln, start: start, end: end, fill: gen-green, tag: tag, label: label)
