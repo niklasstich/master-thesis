@@ -8,10 +8,10 @@ abstract class Metalama::Aspect {
 }
 interface Metalama::IDeclaration
 interface Metalama::IEligible<T : class, IDeclaration> {
-    + void BuildEligibility(IEligibilityBuilder<T> builder)
+    + void BuildEligibility(IEligibilityBuilder<T>)
 }
 interface Metalama::IAspect<T : class, IDeclaration> {
-    + void BuildAspect(IAspectBuilder<T> builder)
+    + void BuildAspect(IAspectBuilder<T>)
 }
 
 
@@ -32,10 +32,28 @@ IDeclaration <|--- IMethod
 
 together {
 abstract class Metalama::TypeAspect {
+    + void BuildEligibility(IEligibilityBuilder<T>)
+    + void BuildAspect(IAspectBuilder<T>)
 }
 abstract class Metalama::MethodAspect {
+    + void BuildEligibility(IEligibilityBuilder<T>)
+    + void BuildAspect(IAspectBuilder<T>)
 }
 }
+
+
+together {
+abstract class Metalama::Fabric{
+}
+abstract class Metalama::ProjectFabric{
+    + {abstract} void AmendProject(IProjectAmender)
+}
+abstract class Metalama::TransitiveProjectFabric{
+}
+}
+Fabric <|-d- ProjectFabric
+ProjectFabric <|-d- TransitiveProjectFabric
+
 
 Aspect <|-- TypeAspect
 IAspect <|.. TypeAspect : implements with T=INamedType 
@@ -49,18 +67,25 @@ class Moyou::MyAttribute <<Attribute>>
 Attribute <|-- MyAttribute
 
 class Moyou::MyTypeAspect <<TypeAspect>> {
-    + void override BuildAspect(IAspectBuilder<INamedType> builder)
-    + void override BuildEligibility(IEligibilityBuilder<INamedType> builder)
+    + void override BuildAspect(IAspectBuilder<INamedType>)
+    + void override BuildEligibility(IEligibilityBuilder<INamedType>)
 }
 TypeAspect <|-- MyTypeAspect
 
 class Moyou::MyMethodAspect <<MethodAspect>> {
-    + void override BuildAspect(IAspectBuilder<IMethod> builder)
-    + void override BuildEligibility(IEligibilityBuilder<IMethod> builder)
+    + void override BuildAspect(IAspectBuilder<IMethod>)
+    + void override BuildEligibility(IEligibilityBuilder<IMethod>)
 }
 MethodAspect <|-- MyMethodAspect
 
+' class Moyou::MyProjectFabric <<ProjectFabric>> {
+'     + void AmendProject(IProjectAmender)
+' }
+' ProjectFabric <|-- MyProjectFabric
 
-
+class Moyou::MyTransitiveProjectFabric <<TransitiveProjectFabric>> {
+    + void AmendProject(IProjectAmender)
+}
+TransitiveProjectFabric <|-- MyTransitiveProjectFabric
 
 @enduml

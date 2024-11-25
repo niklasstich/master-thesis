@@ -1,0 +1,38 @@
+@startuml factory_aspect_order
+|FactoryMemberFabric|
+start
+:find all types with FactoryMemberAttribute;
+:report errors on invalid declarations;
+:introduce single FactoryMemberAspect on each target type 
+with list of component types and interfaces|
+'end group
+
+|FactoryMemberAspect|
+repeat
+:get type tuple from list;
+:convert types into serializable references;
+:add FactoryMemberAnnotation with 
+tuple to target factory type|
+repeat while (more tuples in list?) is (yes) not (no)
+'end group
+
+|FactoryAttribute|
+:read annotations on target;
+:map references back into types;
+repeat
+:get type tuple from list;
+:compute name for method;
+:try to find suitable constructor
+on component type|
+if(constructor found?) then (no)
+    #pink:report error diagnostic;
+    stop
+endif
+:introduce method that invokes
+constructor and returns value|
+repeat while (more tuples in list?) is (yes) not (no)
+
+'end group
+
+stop
+@enduml

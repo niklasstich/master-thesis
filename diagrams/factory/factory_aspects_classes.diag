@@ -1,0 +1,49 @@
+@startuml factory_aspects_classes
+set separator ::
+
+class FactoryMemberFabric <<TransitiveProjectFabric>>
+{
+    + void AmendProject(IProjectAmender)
+}
+
+class FactoryMemberAttribute <<Attribute>>
+{
+    + Type TargetType { get; set; }
+    + Type? PrimaryInterface { get; set; }
+}
+
+class FactoryMemberAspect <<TypeAspect>>
+{
+    + List<(INamedType, INamedType)> TargetTuples { get; }
+    + void BuildAspect(IAspectBuilder<T> builder)
+    + FactoryMemberAspect(List<(INamedType, INamedType)>)
+}
+
+class FactoryAttribute <<TypeAspect>>
+{
+    + void BuildAspect(IAspectBuilder<T>)
+}
+
+interface Metalama::IAnnotation<T: IDeclaration>
+{
+}
+
+class FactoryMemberAnnotation 
+{
+    + IRef<IDeclaration> FactoryMemberType { get; }
+    + IRef<IDeclaration> PrimaryInterface { get; }
+}
+
+Metalama::IAnnotation <|.. FactoryMemberAnnotation : implements with T=INamedType
+
+class FactoryConstructorAttribute <<Attribute>>
+{
+}
+
+FactoryMemberFabric ..u> FactoryMemberAttribute
+FactoryMemberFabric ..u> FactoryMemberAspect
+FactoryMemberAspect ..u> FactoryMemberAnnotation
+FactoryAttribute ..u> FactoryMemberAnnotation
+FactoryAttribute ..u> FactoryConstructorAttribute
+
+@enduml

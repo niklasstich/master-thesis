@@ -64,17 +64,26 @@ class ConcreteComponentB : IComponent
 
 Unfortunately, this design was not (yet) possible in Metalama during development of this patterns implementation. The reason for this is that an aspect can only manipulate the target declaration it was declared on and it's nested child types. Because the concrete factory is a separate type completely unrelated to the concrete components, it's not possible to declare the factory like this. The reason this limitation is in place is because aspects rely on source transformers behind the scenes to enact the advice that we declare in aspects and if we could build advice on arbitrary types in a compilation, every aspect would potentially need a source transformer on every declaration in the compilation. Furthermore, the factory type could be in a separate compilation altogether, in which case it would be impossible to even create a source transformer on it from the context of our current compilation. In Metalama 2025.0 however, this limitation was partially lifted, as we can now put attributes on any declaration we wish to#footnote([Information sourced from private communication with Gael Fraiteur on Nov. 23th, 2024 (via Slack)]) which can then be an aspect itself. An example implementation of abstract factory using this new feature can be found at [https://github.com/postsharp/Metalama.Samples/pull/96].
 
-Instead, as a compromise, it was decided to reverse the design by putting the relevant attributes on the factory classes and having them reference the types they are supposed to instantiate. The design for this is more involved and requires more types, an overview of which can be found in \@.
+Instead, as a compromise, it was decided to reverse the design by putting the relevant attributes on the factory classes and having them reference the types they are supposed to instantiate. The design for this is more involved and requires more types, an overview of which can be found in @factory_aspects_classes.
 
-TODO: factory aspects type diagram
+#figure(
+    image("../../diagrams/factory/factory_aspects_classes.svg"),
+    caption: []
+)<factory_aspects_classes>
 
-This means that we should have *one attribute per concrete component* and because we can only have one instance of an *aspect* per target declaration, we use plain C\# attributes in the form of `[FactoryMember(typeof(ConcreteComponent), typeof(IConcreteComponent))]` to declare these target types and use a fabric#footnote([This fabric won't be shown here because it is quite lengthy and complex due to the error handling it has to perform, but it can be found at [https://github.com/niklasstich/Moyou/blob/master/Moyou.Aspects/Moyou.Aspects.Factory/FactoryMemberFabric.cs].]) to read and rewrite them into a single `[FactoryMemberAspect]` which contains a list of tuples of `(INamedType, INamedType)`, where the first type is the concrete component type and the second type is the primary interface the factory should use as a return type on the create method. This `FactoryMemberAspect` then writes an annotation on the target@metadocs[AdviserExtensions.AddAnnotation method] which the `FactoryAttribute` aspect reads and finally generates the required methods.
+This design means that we should have *one attribute per concrete component* and because we can only have one instance of an *aspect* per target declaration, we use plain C\# attributes in the form of `[FactoryMember(typeof(ConcreteComponent), typeof(IConcreteComponent))]` to declare these target types and use a fabric#footnote([This fabric won't be shown here because it is quite lengthy and complex due to the error handling it has to perform, but it can be found at [https://github.com/niklasstich/Moyou/blob/master/Moyou.Aspects/Moyou.Aspects.Factory/FactoryMemberFabric.cs].]) to read and rewrite them into a single `[FactoryMemberAspect]` which contains a list of tuples of `(INamedType, INamedType)`, where the first type is the concrete component type and the second type is the primary interface the factory should use as a return type on the create method. This `FactoryMemberAspect` then writes an annotation on the target@metadocs[AdviserExtensions.AddAnnotation method] which the `FactoryAttribute` aspect#footnote([Note that even though it's named `FactoryAttribute`, it's not only just a plain attribute but actually an aspect. By convention, we can use attributes in C\# by omitting `Attribute` in the declaration if the type name of the attribute ends with `Attribute`, explaining the name.]) reads and finally generates the required methods. The order in which the fabrics and aspects described are executed and the steps they perform is detailed in @factory_aspect_order. We'll do without showing the implementation code of the factory pattern here, as it is quite lengthy and verbose.
 
 To give users the option to mark which constructor should be used, a `[FactoryConstructor]` attribute was introduced which the `FactoryAttribute` aspect will use to instantiate the concrete component in it's implementation. If the attribute is not present, the factory aspect will check whether there is a single public constructor on the component type and use it if that's the case, otherwise throw an error for the user with the demand to mark the constructor that should be used.
 
-
 Because we were unhappy with the final implementation of the factory pattern, the decision was made *not* to pursue the abstract factory pattern in the same manner, as it would have required essentially copying the logic described above and adjusting it for the abstract factory.
 
+#figure(
+    image("../../diagrams/factory/factory_aspect_order.svg"),
+    caption: [Activity diagram which shows a simplified overview of how the factory implementation works]
+)<factory_aspect_order>
+
 == Example application of pattern
+TODO: ausklammern? kommt auf finale länge an
 == Impact and consequences of aspects<factory_consequences>
+
 #pagebreak(weak: true)
