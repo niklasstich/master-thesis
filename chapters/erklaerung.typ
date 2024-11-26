@@ -3,13 +3,11 @@
 
 #let signature() = {
   grid(columns: 2, column-gutter: 3cm, rows: 2, row-gutter: 0cm, align: bottom, [
-  //hier Datum einsetzen
-  Ort, den 30. November 2024],
+  Nesselwang, den 30. November 2024],
   line(stroke: (dash: "loosely-dotted"), length: 8.5cm),
   [], [#v(1.3em)#align(center)[_Unterschrift des Verfassers_]])
 }
 
-//Bitte hier keine Änderungen vornehmen (außer Ort/Datum), sondern vollständig handschriftlich ausfüllen
 
 = Erklärung
 #v(2cm)
