@@ -3,7 +3,7 @@
 
 = Factory<factory>
 
-== Analysis of pattern
+== Analysis of Pattern
 The factory method and abstract factory patterns are creational patterns@Gamma1994[p. 87ff, 107ff], which, as Nesteruk describes correctly, are variations on a more generalized description of the pattern that's commonly known as the factory pattern nowadays@Nesteruk2022[p. 73]. The main point of the factory pattern is to decouple the creation of a concrete object and the code that uses it via introduction of a third type that is responsible for creating our concrete object for our consumer@Gamma1994[p. 87f, 107f].
 
 The abstract factory is presented in @Gamma1994 as a solution suitable "for creating families of related or dependant objects without specifying their concrete classes"@Gamma1994[p. 87], and they go on to explain that we should use it in cases where we need to have multiple versions of different components that can be swapped out transparently@Gamma1994[p. 87]. This pattern is implementing by introducing interfaces for both the factories and the components they create and is especially useful in combination with dependency injection technologies, because we usually need to introduce an interface for all of our applications dependencies (like our factories for example) anyway and implementing the abstract factory pattern completely solves the problem of mocking our objects during tests. The core of the abstract factory solution is shown in the class diagram in @factory_abstract_classdiag.
@@ -14,7 +14,7 @@ The abstract factory is presented in @Gamma1994 as a solution suitable "for crea
 )<factory_abstract_classdiag>
 
 In the following section we will explore why implementing the factory pattern in Metalama is possible, but not in way the author originally intended and the compromise that was found to implement factory but not abstract factory.
-== Implementation of aspects
+== Implementation of Aspects
 The original idea for how the factory and abstract factory pattern should be implemented was the following: First of all, we would define empty stub classes for the factories. On the component types that should be constructed by factories, the `[Factory(typeof(ConcreteFactory)]` attribute would be placed. A second parameter on the attribute would have indicated the primary interface to use as a return type of the factory, if there were more than one. To also implement abstract factory, we would create a stub interface and place the `[AbstractFactory(typeof(IAbstractFactory)]` attribute on our concrete factory types. During compilation, the factory aspect would have be executed first and generate all the required methods on the factories, then the abstract factory aspect would have ran afterward and, if the signatures of the methods of the concrete factories were compatible (think parameters, return types and method names), introduce the methods to the abstract factory interface and generate the methods in it. An example of what that should have looked like in code is seen in @factory_initial_design_example. The code that should have been generated will be highlighted in green.
 
 #codly(
@@ -82,7 +82,7 @@ Because we were unhappy with the final implementation of the factory pattern, th
     caption: [Activity diagram which shows a simplified overview of how the factory implementation works]
 )<factory_aspect_order>
 
-== Example application of pattern
+== Example Application of Pattern
 In @factory_diff_example, we see an example factory that creates two concrete components. As we can see, we need both the `[Factory]` and `[FactoryMember]` attributes on the factory to generate the implementations. We can also see that, because `TypeA` only implements one interface, we can deduce the interface we should use as the return type for it's method. We also defined that the `TypeA(int)` constructor should be used rather than the default constructor `TypeA()` for the instantiation, meaning the factory method for `TypeA` also has the same `int` parameter the constructor has. On `TypeB`, there is only one constructor and it is parameter-free and public, meaning it was used for the instantiation, but because the type implements two interfaces, we had to specify that the `ITypeB` interface should be used as the return type of the `CreateTypeB` method in the attribute declaration in line 3.
 #figure(
 ```diff
@@ -141,8 +141,8 @@ In @factory_diff_example, we see an example factory that creates two concrete co
 ```, caption: [Example factory with two component types]
 )<factory_diff_example>
 
-== Impact and consequences of implementation<factory_consequences>
-Once again, we can refer to the previous sections to find the advantages of automating our factory implementation, such as better code reuse, adhering to the DRY principle, consistency of our implementation across every factory and the ability to move tests on run-time code into compile-time. Especially in code bases where we have many different entites we want to construct using factories (think about an application where every business logic use case is a command, for example), this can save us a considerable amount of copy-paste-and-rename work. On the other hand, just like with the unsaved changes pattern from @unsaved_changes, factory is not to be considered a solution to a cross-cutting concern, which means that we don't improve our adherence to the single responsibility principle by using this automation and we also give up customizability of our implementation once more.
+== Impact and Consequences of Implementation<factory_consequences>
+Once again, we can refer to the previous sections to find the advantages of automating our factory implementation, such as better code reuse, adhering to the DRY principle, consistency of our implementation across every factory and the ability to move tests on run-time code into compile-time. Especially in code bases where we have many different entities we want to construct using factories (think about an application where every business logic use case is a command, for example), this can save us a considerable amount of copy-paste-and-rename work. On the other hand, just like with the unsaved changes pattern from @unsaved_changes, factory is not to be considered a solution to a cross-cutting concern, which means that we don't improve our adherence to the single responsibility principle by using this automation and we also give up customizability of our implementation once more.
 
 A possible downside we should mention is that the more moving parts a pattern that we automated has, the harder it becomes to reason about what our code base actually does. This is an inherent downside of metaprogramming or code generation of any kind, as we hide the implementation of things from the user so they don't have to implement it themselves. In the factory pattern, this is still tolerable, but if we consider the abstract factory pattern with the initial design from @factory_initial_design_example, we're introducing multiple changes to multiple types at the same time, and these changes are a result of declarations on several other types. On larger factories, this can definitely result in a confusing web of interdependencies at some point.
 

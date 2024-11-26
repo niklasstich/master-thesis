@@ -19,8 +19,6 @@
 #include "chapters/patterns.typ"
 #include "chapters/conclusion.typ"
 
-TODO: APPENDIX (kein Appendix, stattdessen z.B. ausführliches Beispiel auf Datenträger)
-
 
 #pagebreak(weak: false)
 #bibliography("sources.bib", style: "ieee")

@@ -20,7 +20,6 @@
 #include "chapters/patterns.typ"
 #include "chapters/conclusion.typ"
 
-TODO: APPENDIX (kein Appendix, stattdessen z.B. ausführliches Beispiel auf Datenträger)
 
 #bibliography("sources.bib", style: "ieee")
 #outline(title: "Table of figures", target: figure)

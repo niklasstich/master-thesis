@@ -3,7 +3,7 @@
 
 = Singleton<singleton>
 
-== Analysis of pattern<singleton_analysis>
+== Analysis of Pattern<singleton_analysis>
 The singleton pattern is a creational pattern which can be used to "[e]nsure a class only has one instance, and provide a global point of access to it"@Gamma1994[p. 127]. At any point of a programs lifecycle, if a class implements the singleton pattern, there must, at most, be one instance of said class. To ensure that this is the case, we make the singleton class itself responsible for managing it's own instance creation and object lifecycle as well as providing access to this instance@Gamma1994[p. 127] by declaring all constructors of the type as non-public and providing a public facing static operation to retrieve the instance of the type@Gamma1994[p. 129]. This static operation must check whether there is already an instance of the type stored statically inside of the type, create a new instance if not, and return the single instance@Gamma1994[p. 129 implementation].
 
 #figure(
@@ -98,7 +98,7 @@ class Consumer
 
 Despite these mentioned criticisms, it is still worthwhile to look at how we would automatically implement the classic singleton pattern via aspects, because we are not always in a position to use the alternative solutions mentioned above due to e.g. performance, platform or other architectural constraints and could therefore still potentially reap benefits from automating this pattern. Because singleton is such a prevalent pattern that finds application in many legacy and modern code bases alike, we can analyze whether switching to an aspect to automate the implementation of the has any advantages in such cases.
 
-== Implementation of aspects
+== Implementation of Aspects
 The singleton aspect is implemented in a single class `SingletonAttribute`, which again extends `TypeAspect`. The attribute has one single parameter, a boolean indicating whether the singleton should be lazily initiated.
 
 As with all aspects, before execution of the `BuildAspect` method we can check whether the target is eligible for the aspect. In the case of singleton, we check that the target is not an interface, is not abstract and is not static. Furthermore, the type must have at least one parameterless constructor. We can additionally ensure that the target type will only be a class by putting the `[AttributeUsage(AttributeTargets.Class)]` attribute onto the `SingletonAttribute` itself. If we now try to use it on a struct for example, the .NET compiler itself will give us an error. Next, we'll look at the logic of `BuildAspect`.
@@ -125,7 +125,7 @@ if (Lazy) GenerateLazyImplementation(builder);
 else GenerateNonLazyImplementation(builder);
 ```, caption: [`BuildAspect` code snippet before implementation step]
 )<singleton_aspect_analysis>
-=== Lazy implementation<singleton_lazy_implementation>
+=== Lazy Implementation<singleton_lazy_implementation>
 For the lazy implementation, we introduce a static field called `_instance` to the target type, which is of type `Lazy<TTarget>` with `TTarget` being the target type the aspect is applied to. To get a reference to this `Lazy<TTarget>` type, we must first use reflection tricks to get around syntax limitations of the C\# language as can be seen in @singleton_lazy_typetrick, because we can't simply type an expression like `Lazy<TTarget>` in our current context.
 
 To initialize this field, we add an initializer to the target. This name is misleading however, as unlike explained in @singleton_analysis, this will not generate a static initializer on the field, but instead add a line initializing the field in one of the constructors#footnote([A static constructor is automatically introduced if none exists yet.]), see @singleton_example for examples. Because we specify that we want the `InitializerKind.BeforeTypeConstructor`, Metalama will make this initialization in the static constructor of the type (also sometimes referred to as the type constructor), if we instead had specified `InitializerKind.BeforeTypeConstructor`, it would be initialized in the instance constructor(s) of the type. When calling the `AddInitializer` method, we pass in our `CreateLazyInstance` template as an implementation for the initializer.
@@ -181,9 +181,9 @@ private static void CreateLazyInstance<[CompileTime] T>() where T : new()
 }
 ```, caption: [Code snippet for lazy implementation of singleton]
 )<singleton_code_lazy>
-=== Non-lazy implementation
+=== Non-Lazy Implementation
 The non-lazy implementation is essentially the same as the lazy implementation from @singleton_lazy_implementation, with the key differences being that we use the target type directly instead of the lazy generic type when we define the `_instance` field and it's initializer, and dropping the `.Value` access as we've dropped the indirection. Otherwise, the steps are exactly the same and the final generated code looks the same to our consumers interface-wise.
-== Example application of pattern<singleton_example>
+== Example Application of Pattern<singleton_example>
 In @singleton_example_lazy, we find the implementation that our singleton aspect generates in lazy mode. Note that in the declaration of the `[Singleton]` attribute, we do not have to specify the `Lazy` property as it is set to true by default. In @singleton_example_nonlazy, a similar non-lazy example is given. Note that in both examples, the interface of `Instance` is the same and only how we store the instance field differs; therefore users of our singleton do not need to concern themselves about how the singleton is instantiated.
 #figure(
 ```diff
@@ -253,7 +253,7 @@ In @singleton_example_lazy, we find the implementation that our singleton aspect
  }
 ```, caption: [Example of non-lazy singleton implementation via the aspect]
 )<singleton_example_nonlazy>
-== Impact and consequences of implementation<singleton_consequences>
+== Impact and Consequences of Implementation<singleton_consequences>
 Using our singleton aspect to implement the singleton functionality for us does not give us quite as many advantages as the memento aspect did, because singleton is a pretty static pattern that does not change much even when the type we implement singleton itself changes significantly. That does however not mean that using metaprogramming to extract the singleton implementation from our singleton types itself has no merit. The arguments posited in @memento_consequences, except for the argument about the changing implementation, still stand. By removing the singleton implementation from the explicit code of the type we have made the type itself easier to understand and maintain, fulfilling our adapted defintion of the SRP. We've also again reduced code duplication by not having to copy-paste the same singleton implementation every time, instead relying on one singleton aspect implementation that can be tested in advance, reducing run-time code test requirements and that can be changed once centrally to change the implementation of all our singletons automatically.
 
 It can therefore be concluded that even though the singleton initally appears very simple to understand and implement, there are still advantages to be had from automating it, even though it is "only" a creational pattern and does not carry much logic itself. This is because the singleton pattern solves a problem that fits our definition of cross-cutting concerns from @aop very well: the logic of the singleton pattern is concerned with the lifetime of objects of our target types rather than the actual functional business logic of the types itself, compare with @Kiczales1997[definition on p. 7]. If we follow the theory of aspect-oriented programming@Kiczales1997, it is only natural that we'd want to pull this concern out of our components.

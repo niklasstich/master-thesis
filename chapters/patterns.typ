@@ -5,7 +5,7 @@
 #include "patterns/unsavedchanges.typ"
 #include "patterns/factory.typ"
 
-= Analysis of other patterns
+= Analysis of Other Patterns
 In this chapter, we shall look at some other design patterns that have not been implemented in Moyou yet and analyze whether implementing them via aspects is sensible, brings any benefits and is even possible in the first place. We'll also take a look at some reference implementations of other programming patterns courtesy of the Metalama project.
 
 == Command
