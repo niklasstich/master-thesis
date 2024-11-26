@@ -83,7 +83,67 @@ Because we were unhappy with the final implementation of the factory pattern, th
 )<factory_aspect_order>
 
 == Example application of pattern
-TODO: ausklammern? kommt auf finale länge an
-== Impact and consequences of aspects<factory_consequences>
+In @factory_diff_example, we see an example factory that creates two concrete components. As we can see, we need both the `[Factory]` and `[FactoryMember]` attributes on the factory to generate the implementations. We can also see that, because `TypeA` only implements one interface, we can deduce the interface we should use as the return type for it's method. We also defined that the `TypeA(int)` constructor should be used rather than the default constructor `TypeA()` for the instantiation, meaning the factory method for `TypeA` also has the same `int` parameter the constructor has. On `TypeB`, there is only one constructor and it is parameter-free and public, meaning it was used for the instantiation, but because the type implements two interfaces, we had to specify that the `ITypeB` interface should be used as the return type of the `CreateTypeB` method in the attribute declaration in line 3.
+#figure(
+```diff
+ [Factory]
+ [FactoryMember(TargetType = typeof(TypeA))]
+ [FactoryMember(TargetType = typeof(TypeB), PrimaryInterface = typeof(ITypeB))]
+ public partial class Factory
+ {
++    public ITypeA CreateTypeA(int foo)
++    {
++        return new TypeA(foo);
++    }
++
++    public ITypeB CreateTypeB()
++    {
++        return new TypeB()!;
++    }
+ }
+
+ public interface ITypeA
+ {
+     int Foo { get; set; }
+ }
+ 
+ public interface ITypeB
+ {
+     string Bar { get; }
+ }
+ 
+ public class TypeA : ITypeA
+ {
+     public TypeA()
+     {
+         Foo = 123;
+     }
+     
+     [FactoryConstructor]
+     public TypeA(int foo)
+     {
+         Foo = foo;
+     }
+     
+     public int Foo { get; set; }
+ }
+ 
+ public class TypeB : ITypeB, ISomeOtherInterface
+ {
+     public TypeB()
+     {
+         Bar = "foobar";
+     }
+     
+     public string Bar { get; init; }
+ }
+
+```, caption: [Example factory with two component types]
+)<factory_diff_example>
+
+== Impact and consequences of implementation<factory_consequences>
+Once again, we can refer to the previous sections to find the advantages of automating our factory implementation, such as better code reuse, adhering to the DRY principle, consistency of our implementation across every factory and the ability to move tests on run-time code into compile-time. Especially in code bases where we have many different entites we want to construct using factories (think about an application where every business logic use case is a command, for example), this can save us a considerable amount of copy-paste-and-rename work. On the other hand, just like with the unsaved changes pattern from @unsaved_changes, factory is not to be considered a solution to a cross-cutting concern, which means that we don't improve our adherence to the single responsibility principle by using this automation and we also give up customizability of our implementation once more.
+
+A possible downside we should mention is that the more moving parts a pattern that we automated has, the harder it becomes to reason about what our code base actually does. This is an inherent downside of metaprogramming or code generation of any kind, as we hide the implementation of things from the user so they don't have to implement it themselves. In the factory pattern, this is still tolerable, but if we consider the abstract factory pattern with the initial design from @factory_initial_design_example, we're introducing multiple changes to multiple types at the same time, and these changes are a result of declarations on several other types. On larger factories, this can definitely result in a confusing web of interdependencies at some point.
 
 #pagebreak(weak: true)

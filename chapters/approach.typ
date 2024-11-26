@@ -259,7 +259,6 @@ The Moyou project is largely divided into 5 namespaces:
 
 Regarding `Moyou.Test`, special care was taken to consider as many likely scenarios of possible kinds of input to the aspects as possible, including input that results in warning or error diagnostics by the aspects (such as e.g. marking an abstract class as a singleton). The benefits of splitting testing across both compile-time and run-time code of aspects will be more thoroughly explained after the first aspect is introduced in @memento_consequences.
 
-Whenever source code from the Moyou project is shown as a listing anywhere in this paper, a footnote with a permalink to the file in the GitHub repository will be provided.
 
 == A note on notation
 This paper uses PlantUML#footnote([https://plantuml.com/]) to generate the various diagrams shown throughout. In @classdiag_legend, a legend showing the various different elements and relationship of the UML diagrams used here can be observed#footnote([A full reference is available at https://plantuml.com/class-diagram for class diagrams and https://plantuml.com/activity-diagram-beta for activity diagrams.]). In general, only members relevant to the topic at hand will be shown on types in class diagrams. Class diagrams that contain Metalama aspect types will not have their template members represented in these class diagrams as they are not actually relevant to the aspect itself but are rather applied to the target declaration of the aspect.
