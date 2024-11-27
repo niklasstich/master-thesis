@@ -14,7 +14,7 @@ The abstract factory is presented in @Gamma1994 as a solution suitable "for crea
 )<factory_abstract_classdiag>
 
 In the following section we will explore why implementing the factory pattern in Metalama is possible, but not in way the author originally intended and the compromise that was found to implement factory but not abstract factory.
-== Implementation of Aspects
+== Implementation of Aspects<factory_impl>
 The original idea for how the factory and abstract factory pattern should be implemented was the following: First of all, we would define empty stub classes for the factories. On the component types that should be constructed by factories, the `[Factory(typeof(ConcreteFactory)]` attribute would be placed. A second parameter on the attribute would have indicated the primary interface to use as a return type of the factory, if there were more than one. To also implement abstract factory, we would create a stub interface and place the `[AbstractFactory(typeof(IAbstractFactory)]` attribute on our concrete factory types. During compilation, the factory aspect would have be executed first and generate all the required methods on the factories, then the abstract factory aspect would have ran afterward and, if the signatures of the methods of the concrete factories were compatible (think parameters, return types and method names), introduce the methods to the abstract factory interface and generate the methods in it. An example of what that should have looked like in code is seen in @factory_initial_design_example. The code that should have been generated will be highlighted in green.
 
 #codly(

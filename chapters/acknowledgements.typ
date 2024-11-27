@@ -6,5 +6,7 @@ I would like to extend my deepest appreciation to Prof. Dr. Georg Hagel, who has
 
 Special thanks should also go to Gael Fraiteur and his entire Metalama team who have graciously provided a free licence for their commercial product for this thesis and have always answered my many technical questions with great care and kindness, even going so far as to implement a new feature I have wished for during the development of my project.
 
+I want to also extend my gratitude to all my friends and acquaintances who have helped me during this thesis by giving me advice, encouragement and helping me proofread.
+
 Lastly, I'd like to acknowledge my parents for always supporting me during my studies, both emotionally and financially, never letting up about reminding me that they believe in me and are proud of my accomplishments so far.
 #set page(header: none)
