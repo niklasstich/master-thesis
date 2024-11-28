@@ -27,6 +27,7 @@ on component type|
 if(constructor found?) then (no)
     #pink:report error diagnostic;
     stop
+else (yes)
 endif
 :introduce method that invokes
 constructor and returns value|
