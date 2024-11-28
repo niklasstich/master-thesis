@@ -427,9 +427,6 @@ As we can see, our `MementoDummy` input class is largely unchanged except for th
 We also see that, depending on what the type of a member is, different strategies are used for copying it, as explained in @memento_method_impl, as such the `string` B is not copied via it's `Clone()` method but simply by reference, but the `CloneableDummy M` property is cloned and all value types `int` are copied via assignments. We also see that the property F is ignored, and so are all properties that have no always callable setter, such as C (because it only has an `init` setter) or the computed property I. Finally, we see that the hook methods `CreateHook` and `RestoreHook` are called after the respective create or restore implementation was called.
 #figure(
 ```diff
- using Moyou.Aspects.Memento;
- namespace Moyou.UnitTest.Memento;
- 
  [Memento(StrictnessMode = StrictnessMode.Loose)]
 -internal partial class MementoDummy
 +internal partial class MementoDummy: IOriginator

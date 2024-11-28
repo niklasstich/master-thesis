@@ -187,10 +187,6 @@ The non-lazy implementation is essentially the same as the lazy implementation f
 In @singleton_example_lazy, we find the implementation that our singleton aspect generates in lazy mode. Note that in the declaration of the `[Singleton]` attribute, we do not have to specify the `Lazy` property as it is set to true by default. In @singleton_example_nonlazy, a similar non-lazy example is given. Note that in both examples, the interface of `Instance` is the same and only how we store the instance field differs; therefore users of our singleton do not need to concern themselves about how the singleton is instantiated.
 #figure(
 ```diff
- using Moyou.Aspects.Singleton;
- 
- namespace Moyou.UnitTest.Singleton;
- 
  [Singleton]
  public partial class SingletonDummy
  {
@@ -221,10 +217,6 @@ In @singleton_example_lazy, we find the implementation that our singleton aspect
 
 #figure(
 ```diff
- using Moyou.Aspects.Singleton;
- 
- namespace Moyou.UnitTest.Singleton;
- 
  [Singleton(Lazy = false)]
  public partial class SingletonNonLazyDummy
  {
