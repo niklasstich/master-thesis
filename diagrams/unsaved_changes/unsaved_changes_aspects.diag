@@ -1,4 +1,5 @@
 @startuml unsaved_changes_aspects
+skinparam DefaultFontName Arial
 interface IUnsavedChanges
 {
     + bool UnsavedChanges { get; }

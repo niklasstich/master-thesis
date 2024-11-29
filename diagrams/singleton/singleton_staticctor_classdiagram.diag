@@ -1,4 +1,5 @@
 @startuml singleton_staticctor_classdiagram
+skinparam DefaultFontName Arial
 
 class Singleton {
     + {static} Singleton Instance { get; private set; }

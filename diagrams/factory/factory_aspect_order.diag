@@ -1,4 +1,5 @@
 @startuml factory_aspect_order
+skinparam DefaultFontName Arial
 |FactoryMemberFabric|
 start
 :find all types with FactoryMemberAttribute;

@@ -1,4 +1,5 @@
 @startuml factory_class
+skinparam DefaultFontName Arial
 together {
     interface IAbstractFactory
     {

@@ -168,6 +168,7 @@ IEnumerable<IField> IntroduceMementoTypeFields() => relevantMembers
 
 ==== Implement Interfaces
 In order to keep the concrete memento type hidden from caretakers, we must implement the `IMemento` interface on our new `Memento` type as previously explained in @memento_analysis. We also implement `IOriginator` on the target type in @memento_impl_interfaces.
+#pagebreak(weak: true)
 #figure(
 ```cs
 builder.Advice.ImplementInterface(nestedMementoType, typeof(IMemento),

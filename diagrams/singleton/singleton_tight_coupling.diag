@@ -1,4 +1,5 @@
 @startuml singleton_tight_coupling
+skinparam DefaultFontName Arial
 class Provider {
     - {static} Lazy<Provider> instance;
     + {static} Provider Instance => instance.Value

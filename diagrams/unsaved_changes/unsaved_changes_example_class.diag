@@ -1,4 +1,5 @@
 @startuml unsaved_changes_example_class
+skinparam DefaultFontName Arial
 class A <<UnsavedChanges>>
 {
     + B B { get; set; }

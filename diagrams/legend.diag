@@ -1,4 +1,5 @@
 @startuml legend
+skinparam DefaultFontName Arial
 
 left to right direction
 set separator ::

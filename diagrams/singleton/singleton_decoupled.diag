@@ -1,4 +1,5 @@
 @startuml singleton_decoupled
+skinparam DefaultFontName Arial
 class Provider {
     + int SomeData { get; set; }
     + Provider()

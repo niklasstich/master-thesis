@@ -1,4 +1,5 @@
 @startuml metalama_stereotypes
+skinparam DefaultFontName Arial
 top to bottom direction
 set separator ::
 

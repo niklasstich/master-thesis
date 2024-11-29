@@ -1,4 +1,5 @@
 @startuml factory_aspects_classes
+skinparam DefaultFontName Arial
 set separator ::
 
 class FactoryMemberFabric <<TransitiveProjectFabric>>

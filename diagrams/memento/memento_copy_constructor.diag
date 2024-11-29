@@ -1,4 +1,5 @@
 @startuml memento_copy_constructor
+skinparam DefaultFontName Arial
 top to bottom direction
 interface IOriginator {
     +IMemento CreateMemento()

@@ -1,4 +1,5 @@
 @startuml singleton_lazy_classdiagram
+skinparam DefaultFontName Arial
 
 class Singleton {
     - {static} Lazy<Singleton> instance;
