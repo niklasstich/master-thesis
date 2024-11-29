@@ -22,5 +22,5 @@
 
 
 #bibliography("sources.bib", style: "ieee")
-#outline(title: "Table of figures", target: figure)
+#outline(title: "Table of Figures", target: figure)
 //#outline(title: "Table of tables", target: table)
