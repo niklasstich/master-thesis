@@ -4,7 +4,8 @@
   #set document(author: "", title: "", date: auto, keywords: "")
 
   //Einstellung für Seiten
-  #set page(paper: "a4", margin: (left: 25mm, right: 20mm, top: 25mm, bottom: 25mm))
+  #set page(paper: "a4", margin: (left: 22.5mm, right: 22.5mm, top: 25mm, bottom: 25mm))
+  //#set page(paper: "a4", margin: (left: 25mm, right: 20mm, top: 25mm, bottom: 25mm))
 
 
   //Einstellungen für Text
