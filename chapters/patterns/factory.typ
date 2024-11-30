@@ -15,6 +15,7 @@ The abstract factory is presented in @Gamma1994 as a solution suitable "for crea
 
 In the following section, we will explore why implementing the factory pattern in Metalama is possible, but not in the way the author originally intended and a compromise that was found to implement factory but not abstract factory.
 == Implementation of Aspects<factory_impl>
+=== Design Considerations
 The original idea for how the factory and abstract factory pattern should be implemented was the following: First of all, we would define empty stub classes for the factories. On the component types that should be constructed by factories, the `[Factory(typeof(ConcreteFactory)]` attribute would be placed. A second parameter on the attribute would have indicated the primary interface to use as a return type of the factory, if there were more than one. To also implement abstract factory, we would create a stub interface and place the `[AbstractFactory(typeof(IAbstractFactory)]` attribute on our concrete factory types. During compilation, the factory aspect would have been executed first and generated all the required methods on the factories, then the abstract factory aspect would have run afterwards and, if the signatures of the methods of the concrete factories were compatible (think parameters, return types and method names), introduce the methods to the abstract factory interface and generate the methods in it. An example of what that should have looked like in code is seen in @factory_initial_design_example. The code that should have been generated will be highlighted in green.
 
 #codly(
@@ -64,6 +65,7 @@ class ConcreteComponentB : IComponent
 
 Unfortunately, this design was not (yet) possible in Metalama during the development of this pattern's implementation. The reason for this is that an aspect can only manipulate the target declaration it was declared on and its nested child types. Because the concrete factory is a separate type completely unrelated to the concrete components, it is not possible to declare the factory like this. The reason this limitation is in place is because aspects rely on source transformers behind the scenes to enact the advice that we declare in aspects and if we could build advice on arbitrary types in a compilation, every aspect would potentially need a source transformer on every declaration in the compilation. Furthermore, the factory type could be in a separate compilation altogether, in which case it would be impossible to even create a source transformer on it from the context of our current compilation. In Metalama 2025.0 however, this limitation was partially lifted, as we can now put attributes on any declaration we wish to#footnote([Information sourced from private communication with Gael Fraiteur on Nov. 23rd, 2024 (via Slack)]) which can then be an aspect itself. An example implementation of abstract factory using this new feature can be found at [https://github.com/postsharp/Metalama.Samples/pull/96].
 
+=== Implementation of Aspects
 Instead, as a compromise, it was decided to reverse the design by putting the relevant attributes on the factory classes and having them reference the types they are supposed to instantiate. The design for this is more involved and requires more types, an overview of which can be found in @factory_aspects_classes.
 
 #figure(
@@ -75,7 +77,7 @@ This design means that we should have *one attribute per concrete component* and
 
 To give users the option to mark which constructor should be used, a `[FactoryConstructor]` attribute was introduced which the `FactoryAttribute` aspect will use to instantiate the concrete component in its implementation. If the attribute is not present, the factory aspect will check whether there is a single public constructor on the component type and use it if that's the case, otherwise throw an error for the user with the demand to mark the constructor that should be used.
 
-Because we were unhappy with the final implementation of the factory pattern, the decision was made *not* to pursue the abstract factory pattern in the same manner, as it would have required essentially copying the logic described above and adjusting it for the abstract factory.
+Because we were left unsatisfied with this implementation of the factory pattern, the decision was made *not* to pursue the abstract factory pattern in the same manner, as it would have required essentially copying the logic described above and adjusting it for the abstract factory.
 
 #figure(
     image("../../diagrams/factory/factory_aspect_order.svg"),

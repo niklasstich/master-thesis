@@ -5,7 +5,7 @@
   h(1fr)
   entry.page
 })
-#heading(outlined: false, numbering: none, "Table of contents")
+#heading(outlined: false, numbering: none, "Table of Contents")
 #v(1em)
 #outline(title: none, indent: auto, target: heading, depth: 10)
 #pagebreak(weak: true)

@@ -3,9 +3,9 @@
 
 #let signature() = {
   grid(columns: 2, column-gutter: 3cm, rows: 2, row-gutter: 0cm, align: bottom, [
-  Nesselwang, den 30. November 2024],
+  Kempten, den 30. November 2024],
   line(stroke: (dash: "loosely-dotted"), length: 8.5cm),
-  [], [#v(1.3em)#align(center)[_Unterschrift des Verfassers_]])
+  [], [#v(1.3em)#align(center)[_Unterschrift_]])
 }
 
 

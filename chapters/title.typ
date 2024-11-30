@@ -29,6 +29,7 @@
 #v(1fr)
 
 #table(align: left, columns: 2, column-gutter: 0.7cm, stroke: none,
+"Matrikelnummer", "362368",
 "Aufgabensteller/Prüfer", "Prof. Dr. Georg Hagel",
 "Arbeit vorgelegt am", "30.11.2024",
 "durchgeführt in der", "Fakultät Informatik",
